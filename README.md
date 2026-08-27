@@ -35,6 +35,10 @@ npm install
 npm run dev
 ```
 
+The client connects to the address in `VITE_SERVER_URL`. Copy `.env.example` to
+`.env` to change it for the build; it can also be edited from the interface at
+run time, which is the fallback when the network keeps the two machines apart.
+
 A console client is also available, useful for driving the server without a
 browser:
 
