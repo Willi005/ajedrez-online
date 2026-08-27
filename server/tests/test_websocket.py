@@ -12,6 +12,7 @@ from server.websocket import (
     compute_accept_key,
     decode_frame,
     encode_close_frame,
+    encode_frame,
     encode_text_frame,
 )
 
@@ -196,6 +197,38 @@ class EncodeFrameTest(unittest.TestCase):
         self.assertEqual(encoded[0], 0x80 | OPCODE_CLOSE)
         self.assertEqual(encoded[2:4], (1000).to_bytes(2, "big"))
         self.assertEqual(encoded[4:], b"bye")
+
+
+class MaskingDirectionTest(unittest.TestCase):
+    """Client frames must be masked, server frames must not be."""
+
+    def test_encode_frame_can_mask_for_the_client_direction(self):
+        encoded = encode_frame(OPCODE_TEXT, b"Hello", mask=True)
+
+        self.assertTrue(encoded[1] & 0x80, "mask bit should be set")
+        # The masked payload must differ from the plaintext, but decode back to it.
+        self.assertNotEqual(encoded[6:], b"Hello")
+        frame, rest = decode_frame(encoded)
+        self.assertEqual(frame.payload, b"Hello")
+        self.assertEqual(rest, b"")
+
+    def test_masked_frames_use_a_fresh_key_each_time(self):
+        first = encode_frame(OPCODE_TEXT, b"Hello", mask=True)
+        second = encode_frame(OPCODE_TEXT, b"Hello", mask=True)
+
+        self.assertNotEqual(first, second)
+
+    def test_decode_frame_accepts_unmasked_frames_in_the_server_direction(self):
+        server_frame = encode_text_frame("Hello")
+
+        frame, rest = decode_frame(server_frame, expect_mask=False)
+
+        self.assertEqual(frame.payload, b"Hello")
+        self.assertEqual(rest, b"")
+
+    def test_decode_frame_rejects_a_masked_frame_when_none_is_expected(self):
+        with self.assertRaises(ProtocolError):
+            decode_frame(masked_frame(b"Hello"), expect_mask=False)
 
 
 class RoundTripTest(unittest.TestCase):

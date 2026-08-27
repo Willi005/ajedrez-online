@@ -6,6 +6,7 @@ implemented by hand so that every step of the protocol stays visible.
 
 import base64
 import hashlib
+import secrets
 from typing import NamedTuple
 
 # Magic GUID defined by RFC 6455 section 4.2.2. It is appended to the client key
@@ -96,11 +97,15 @@ def build_handshake_response(raw_request):
     ).encode("ascii")
 
 
-def decode_frame(buffer):
+def decode_frame(buffer, expect_mask=True):
     """Decode one frame from the head of `buffer`.
 
     Returns `(frame, rest)`. When the buffer does not yet hold a whole frame,
     returns `(None, buffer)` so the caller can recv() more bytes and retry.
+
+    `expect_mask` encodes the asymmetry of RFC 6455: client-to-server frames are
+    always masked, server-to-client frames never are. The server decodes with
+    `expect_mask=True`, a client decodes with `expect_mask=False`.
     """
     if len(buffer) < 2:
         return None, buffer
@@ -123,39 +128,56 @@ def decode_frame(buffer):
         length = int.from_bytes(buffer[offset : offset + 8], "big")
         offset += 8
 
-    # RFC 6455 section 5.1: frames sent from client to server must be masked.
-    if not is_masked:
+    # RFC 6455 section 5.1: frames sent from client to server must be masked,
+    # and frames sent the other way must not be.
+    if expect_mask and not is_masked:
         raise ProtocolError("client frame is not masked")
+    if not expect_mask and is_masked:
+        raise ProtocolError("server frame must not be masked")
 
-    if len(buffer) < offset + 4:
-        return None, buffer
-    mask = buffer[offset : offset + 4]
-    offset += 4
+    if is_masked:
+        if len(buffer) < offset + 4:
+            return None, buffer
+        mask = buffer[offset : offset + 4]
+        offset += 4
+    else:
+        mask = None
 
     if len(buffer) < offset + length:
         return None, buffer
 
-    masked_payload = buffer[offset : offset + length]
-    payload = bytes(byte ^ mask[i % 4] for i, byte in enumerate(masked_payload))
+    payload = buffer[offset : offset + length]
+    if mask is not None:
+        payload = bytes(byte ^ mask[i % 4] for i, byte in enumerate(payload))
     return Frame(fin, opcode, payload), buffer[offset + length :]
 
 
-def encode_frame(opcode, payload):
-    """Build a server-to-client frame. Server frames are never masked."""
+def encode_frame(opcode, payload, mask=False):
+    """Build a frame carrying `payload`.
+
+    The server never masks; a client always must, with a fresh random key per
+    frame (RFC 6455 section 5.3).
+    """
     header = bytearray()
     header.append(0x80 | opcode)
 
     length = len(payload)
+    mask_bit = 0x80 if mask else 0x00
     if length < 126:
-        header.append(length)
+        header.append(mask_bit | length)
     elif length < 65536:
-        header.append(126)
+        header.append(mask_bit | 126)
         header.extend(length.to_bytes(2, "big"))
     else:
-        header.append(127)
+        header.append(mask_bit | 127)
         header.extend(length.to_bytes(8, "big"))
 
-    return bytes(header) + payload
+    if not mask:
+        return bytes(header) + payload
+
+    masking_key = secrets.token_bytes(4)
+    masked = bytes(byte ^ masking_key[i % 4] for i, byte in enumerate(payload))
+    return bytes(header) + masking_key + masked
 
 
 def encode_text_frame(text):
