@@ -5,7 +5,8 @@ construyó, por qué se decidió así, y qué contrato debe respetar quien tome 
 bloque siguiente.
 
 - **Repositorio:** https://github.com/Willi005/ajedrez-online
-- **Estado actual:** Bloque 1 terminado (servidor). Bloques 2 y 3 pendientes.
+- **Estado actual:** Bloques 1 y 2 terminados (servidor y cliente React).
+  Bloque 3 pendiente.
 - **Última actualización:** 27 de agosto de 2026
 
 ---
@@ -15,7 +16,7 @@ bloque siguiente.
 | Bloque | Alcance | Estado |
 |---|---|---|
 | **1. Servidor** | Sockets TCP, WebSocket a mano, salas por token, validaciones, cliente de consola | ✅ Terminado |
-| **2. Cliente React** | Conexión, apodo, lobby, tablero con `chess.js`, sincronización de jugadas | ⬜ Pendiente |
+| **2. Cliente React** | Conexión, apodo, lobby, tablero con `chess.js`, sincronización de jugadas | ✅ Terminado |
 | **3. Chat y estética** | Chat, fin de partida, UI de errores, diseño minimal | ⬜ Pendiente |
 
 Los diagramas, la tabla de pruebas del informe y todo el material teórico
@@ -111,7 +112,7 @@ justamente donde se los quiere explícitos.
 
 ```
 ┌─────────────────────────┐         ┌──────────────────────────────────┐
-│  NAVEGADOR (Bloque 2/3) │         │      SERVIDOR (Bloque 1) ✅      │
+│  NAVEGADOR (Bloque 2) ✅│         │      SERVIDOR (Bloque 1) ✅      │
 │                         │         │                                  │
 │  React + Vite           │         │  Python 3, solo stdlib           │
 │  chess.js (reglas)      │         │                                  │
@@ -145,13 +146,43 @@ justamente donde se los quiere explícitos.
 La dependencia es en una sola dirección: `server.py` → `rooms.py` → `protocol.py`,
 y `server.py` → `websocket.py`. No hay ciclos.
 
+### Archivos del bloque 2
+
+| Archivo | Responsabilidad |
+|---|---|
+| `src/lib/protocol.js` | Construye los mensajes de cliente y normaliza token y apodo igual que el servidor. Sin estado. |
+| `src/lib/config.js` | Resuelve la dirección del servidor: variable de entorno más el ajuste que el usuario guarda. |
+| `src/lib/storage.js` | `localStorage` con cada acceso protegido. |
+| `src/lib/pieces.js` | Nombres de las piezas en español, para etiquetas accesibles y para la interfaz. |
+| `src/hooks/useGameSocket.js` | La conexión: abre, reconecta con espera creciente, envía, notifica. |
+| `src/hooks/useChessGame.js` | Una instancia de `chess.js` y una foto inmutable de la posición para React. |
+| `src/components/Board.jsx` | Tablero en CSS Grid, volteado para las negras. Solo presentación. |
+| `src/components/Piece.jsx` | Las seis piezas dibujadas en SVG. |
+| `src/components/NicknameForm.jsx` | Primera vista: pide el apodo. |
+| `src/components/Lobby.jsx` | Crear partida o unirse con un token. |
+| `src/components/WaitingRoom.jsx` | Muestra el token mientras no llega el rival. |
+| `src/components/GameScreen.jsx` | La partida: turno, selección de casillas, promoción. |
+| `src/components/PromotionPicker.jsx` | Pregunta la pieza antes de enviar la jugada. |
+| `src/components/ServerSettings.jsx` | Estado de la conexión y edición de la dirección del servidor. |
+| `src/App.jsx` | Estado de sesión (apodo, sala, fase) y unión entre el socket y el motor. |
+
+La dependencia también va en una sola dirección: `App.jsx` → hooks → `lib/`, y
+`App.jsx` → componentes → `lib/`. Ningún componente abre el socket por su
+cuenta: todos los mensajes salen y entran por `App.jsx`.
+
 ---
 
 ## 4. Contrato del protocolo
 
-**Este es el contrato que el bloque 2 debe implementar.** Transporte: tramas de
-texto WebSocket, cada una con un objeto JSON. Codificación UTF-8. Máximo 4096
-bytes por trama.
+**Este es el contrato, ya implementado en los dos extremos.** El servidor lo
+valida en `server/protocol.py`; el cliente lo construye en `src/lib/protocol.js`.
+Transporte: tramas de texto WebSocket, cada una con un objeto JSON. Codificación
+UTF-8. Máximo 4096 bytes por trama.
+
+El bloque 2 dejó implementados `create`, `join` y `move`, y el manejo de
+`created`, `start`, `move`, `game_over`, `opponent_left` y `error`. Quedan sin
+usar `chat` y `resign`, que son del bloque 3; sus constructores ya existen en
+`src/lib/protocol.js`.
 
 ### 4.1. Cliente → servidor
 
@@ -300,67 +331,134 @@ Todo se ejecuta **desde la raíz del repositorio**. El servidor no necesita
 instalar nada: solo Python 3.10 o superior.
 
 ```bash
-# Servidor, escuchando en todas las interfaces
+# Terminal 1 — servidor, escuchando en todas las interfaces
 python3 -m server.server --port 8765
 
 # Solo en local
 python3 -m server.server --host 127.0.0.1 --port 8765
 
-# Cliente de consola, en otra terminal
+# Terminal 2 — cliente web
+npm install
+npm run dev
+
+# Terminal 3 (opcional) — cliente de consola, para simular al rival
 python3 -m tools.console_client --host 127.0.0.1 --port 8765
 
-# Pruebas (89 en total)
+# Pruebas del servidor (89 en total)
 python3 -m unittest discover -s server/tests -t .
+
+# Linter y compilación del cliente
+npm run lint
+npm run build
 ```
 
 Comandos del cliente de consola: `create <apodo>`, `join <token> <apodo>`,
 `move <desde> <hasta>`, `chat <texto>`, `resign`, `quit`, `help`.
 
+La dirección a la que se conecta el cliente sale de `VITE_SERVER_URL`. Se copia
+`.env.example` a `.env` para fijarla en la compilación, y además se puede editar
+desde la propia interfaz, en el desplegable "Servidor" al pie de la página.
+
+**Para probar con dos jugadores en un mismo equipo:** dos pestañas del mismo
+navegador comparten `localStorage`, así que las dos verían el mismo apodo. Hay
+que usar dos navegadores distintos, o una ventana normal más una de incógnito.
+
 ### Verificación ya realizada
 
-Las 89 pruebas pasan, de las cuales 17 son de integración: levantan un servidor
-real en un puerto efímero y se conectan con sockets reales, sin nada simulado.
+**Servidor (bloque 1).** Las 89 pruebas pasan, de las cuales 17 son de
+integración: levantan un servidor real en un puerto efímero y se conectan con
+sockets reales, sin nada simulado. Siguen pasando después del bloque 2, que no
+tocó ningún archivo del servidor.
 
 Además se verificó a mano contra el proceso servidor real: creación de sala,
 unión con token en minúsculas, jugadas alternadas, chat con caracteres UTF-8
 (`♞`), rechazo por turno incorrecto, rechazo de chat vacío, rendición y cierre
 de sockets. La salida del servidor registra cada uno de esos pasos.
 
+**Cliente (bloque 2).** Se verificó contra el servidor real, no simulado, en dos
+niveles:
+
+- *Protocolo.* Un guion de Node usa los mismos constructores de
+  `src/lib/protocol.js` para jugar una apertura completa contra el servidor y
+  comprobar los rechazos: `NOT_YOUR_TURN`, `ALREADY_IN_ROOM`, `ROOM_NOT_FOUND`,
+  `INVALID_TOKEN_FORMAT` y `opponent_left`. Los FEN reales miden entre 56 y 67
+  caracteres, holgados frente al límite de 100.
+- *Navegador.* Dos pestañas en contextos separados jugaron una partida completa
+  contra el servidor: apodo persistido y recuperado tras recargar, creación de
+  sala, unión con el token en minúsculas, orientación del tablero por color,
+  bloqueo de la interfaz fuera de turno, seis jugadas alternadas, enroque, al
+  paso, promoción con elección de pieza, aviso de rival desconectado y cambio de
+  la dirección del servidor en caliente.
+
 ---
 
-## 8. Instrucciones para el bloque 2 (cliente React)
+## 8. Instrucciones para el bloque 3 (chat y estética)
 
-El proyecto Vite + React ya está inicializado en la raíz (`src/`, `index.html`,
-`vite.config.js`). Falta todo el código de la aplicación.
+El cliente ya juega. Lo que falta es lo que rodea a la partida: hablar con el
+rival, cerrarla, avisar cuando algo se rechaza, y que todo eso se vea bien.
 
 **Por construir:**
 
-1. `src/hooks/useGameSocket.js` — conexión WebSocket contra la URL configurable,
-   envío y recepción de los mensajes de la sección 4, reconexión ante caída.
-2. Vista de apodo — pide el apodo y lo guarda en `localStorage`.
-3. Vista de lobby — botón "Crear partida" que muestra el token, y campo para
-   unirse con un token.
-4. `src/components/Board` — tablero en CSS Grid con `chess.js` para las reglas.
-5. Sincronización — al mover, validar con `chess.js`, enviar `move` con el FEN
-   resultante, y aplicar los `move` que llegan del rival.
+1. **Chat.** Enviar `chat` y mostrar los `chat` que llegan. El constructor
+   `chatMessage(text)` ya existe en `src/lib/protocol.js`; falta la vista y
+   guardar el historial. El punto de enganche está en el `switch` de
+   `handleMessage` en `src/App.jsx`: hoy el caso `chat` cae en el `default` con
+   un comentario que lo dice.
+2. **Pantalla de fin de partida.** El estado `outcome` de `src/App.jsx` ya
+   guarda `{ reason, winner }` y se llena con `game_over` y con
+   `opponent_left`. Hoy lo pinta un panel de reemplazo marcado con un
+   comentario; hay que sustituirlo.
+3. **Rendición.** Falta el botón. `resignMessage()` ya existe en
+   `src/lib/protocol.js`; se envía con el `send` que devuelve `useGameSocket`.
+   El servidor responde `game_over` **a los dos** jugadores.
+4. **Jaque mate y tablas.** `useChessGame` ya expone `isCheckmate` e `isDraw`
+   en su instantánea, pero nadie los mira: el protocolo no tiene un mensaje para
+   el mate, así que el final por reglas lo detecta cada cliente por su cuenta.
+   Decidir cómo se muestra.
+5. **UI de errores.** El estado `lastError` de `src/App.jsx` guarda
+   `{ code, message }` tal como llegan del servidor. Hoy se muestra en un
+   párrafo de reemplazo. Los códigos están en la sección 4.3 y son estables:
+   conviene reaccionar según el código y no según el texto. Los que el usuario
+   puede provocar de verdad son `ROOM_NOT_FOUND`, `ROOM_FULL`,
+   `INVALID_TOKEN_FORMAT` e `INVALID_CHAT`.
+6. **Estética.** `src/index.css` y `src/App.css` son andamiaje: layout mínimo
+   para poder probar, pensado para reemplazarse entero.
 
 **Restricciones que hay que respetar:**
 
-- La URL del servidor sale de una variable de entorno de Vite y debe poder
-  editarse desde la interfaz. Esto es el plan de respaldo para la demostración:
-  si la red de la sala aísla a los clientes, se cambia a `127.0.0.1` y se corre
-  todo en un equipo.
+- **No cambiar el formato de los mensajes.** El servidor está cerrado y sus 89
+  pruebas deben seguir pasando. Si algo parece necesitar un campo nuevo,
+  discutirlo antes: casi siempre se resuelve en el cliente.
+- **No romper el bloqueo de turno.** `GameScreen` impide mover fuera de turno
+  antes de enviar nada. No basta con que el servidor lo rechace.
+- **La dirección del servidor tiene que seguir siendo editable** desde la
+  interfaz. Es el plan de respaldo de la demostración.
 - No agregar backend, API REST ni base de datos.
 - Código y nombres en inglés. Los textos visibles al usuario, en español.
-- El servidor ya rechaza las jugadas fuera de turno, pero el cliente **también**
-  debe impedirlas en la interfaz, para no depender del viaje de ida y vuelta.
+- `src/components/Board.css` tiene la geometría del tablero además de los
+  colores. Los colores son libres; la rejilla y el tamaño relativo de las
+  piezas conviene dejarlos como están.
+- Las piezas son SVG en `src/components/Piece.jsx`, no caracteres Unicode, y
+  se tiñen con `color` y las variables `--piece-stroke` y `--piece-detail`.
+  Cambiar el tema del tablero es cambiar esas tres cosas.
 
-**Cómo probar sin tocar el servidor:** levantar `python3 -m server.server` y
-abrir dos pestañas del navegador. El cliente de consola sirve para simular al
-rival mientras se desarrolla una sola pestaña.
+**Detalles del chat que ya están decididos por el servidor:**
 
-**Fuera de alcance del bloque 2:** chat, pantalla de fin de partida y estética.
-Eso es el bloque 3.
+- El texto se limpia de caracteres de control y se recorta; después debe medir
+  entre 1 y 200 caracteres, o el servidor devuelve `INVALID_CHAT`.
+- El servidor **no** devuelve al emisor su propio mensaje: solo lo retransmite
+  al rival. El eco propio lo tiene que agregar el cliente al enviar.
+- Chatear sin rival en la sala devuelve `NO_OPPONENT`. Ese código no está en la
+  tabla de la sección 4.3 porque lo levanta `server.py` y no `protocol.py`;
+  conviene contemplarlo igual.
+
+**Cómo probar:** ver la sección 7. Para el chat, el cliente de consola es más
+rápido que abrir un segundo navegador: `python3 -m tools.console_client`, luego
+`join <token> <apodo>` y `chat <texto>`.
+
+**Fuera de alcance del bloque 3:** los diagramas, la tabla de pruebas del
+informe y el material teórico. Eso se hace al final, con la aplicación ya
+terminada.
 
 ---
 
@@ -387,12 +485,61 @@ Eso es el bloque 3.
   árbol de trabajo ignorando el índice. Se resolvió con `git rm -r --cached`
   seguido de un commit sin especificar rutas.
 
+### 27 de agosto de 2026 — Bloque 2
+
+- Se construyó el cliente completo sobre el contrato de la sección 4, sin tocar
+  un solo archivo del servidor. Las 89 pruebas del bloque 1 siguen pasando.
+- Orden de construcción: capa de protocolo y configuración → hook de conexión →
+  hook del motor de ajedrez → tablero → vistas → unión en `App.jsx`. Cada capa
+  se verificó contra el servidor real antes de montar la siguiente.
+- **Problema encontrado: las piezas Unicode no se dibujan de forma fiable.** El
+  bloque `U+2654..U+265F` depende de qué fuente de símbolos tenga instalada la
+  máquina. En la primera captura, el rey, la dama, la torre, el alfil y el
+  caballo salían como cuadros vacíos, y el peón salía negro en los dos bandos
+  porque ganaba la fuente de emoji a color, que ignora `color`. Se reemplazaron
+  por SVG dibujados a mano en `src/components/Piece.jsx`. Además de arreglarlo,
+  esto deja el color de cada bando bajo control de CSS.
+- **Problema encontrado: el tablero del que espera se veía a media luz.** Las 64
+  casillas son `<button>`, y las del jugador que no tiene el turno están
+  `disabled` para impedir la jugada. La regla global `button:disabled { opacity:
+  0.45 }` las alcanzaba a todas, así que medio tiempo de la partida el tablero
+  se veía apagado. Se corrigió con `.square:disabled { opacity: 1 }`: la casilla
+  no se puede pulsar, pero la posición se sigue leyendo igual de bien.
+- **Problema encontrado: dos pestañas del mismo navegador comparten
+  `localStorage`.** Al probar con dos pestañas, el segundo apodo pisaba al
+  primero. No es un error del código —es cómo funciona el almacenamiento por
+  origen— pero sí condiciona la demostración: hacen falta dos navegadores
+  distintos, o uno normal más uno de incógnito. Queda anotado en la sección 7.
+- **Problema encontrado: el protocolo no tiene un mensaje para salir de una
+  sala.** "Cancelar" en la sala de espera y "Volver al inicio" no tenían forma
+  de decírselo al servidor. Como el servidor destruye la sala en cuanto se cae
+  el socket, la única salida es cerrar la conexión: por eso `useGameSocket`
+  expone `reconnect()`. Por lo mismo, perder el socket devuelve al jugador al
+  inicio en lugar de dejarle un tablero muerto en pantalla.
+- **Problema encontrado: `StrictMode` monta los efectos dos veces.** El socket
+  se abría, se cerraba y se volvía a abrir al arrancar, y la lógica de
+  reconexión peleaba contra su propia limpieza. El efecto marca su cierre como
+  deliberado para no programar una reconexión encima.
+- **Decisión: una jugada que no se pudo enviar se deshace.** Se juega primero en
+  `chess.js` y después se envía. Si el envío falla, se llama a `undo()`: dejarla
+  puesta desincronizaría los dos tableros sin que ninguno de los dos jugadores
+  se enterara.
+- **Decisión: el FEN del rival manda.** Las jugadas que llegan se reproducen
+  localmente para conservar el historial, pero si la posición resultante no
+  coincide con el FEN recibido, se carga el FEN. Nunca se dejó ver una
+  discrepancia en las pruebas; es un seguro contra la deriva.
+- Se cubrieron a propósito las jugadas donde el FEN es la única descripción
+  completa: enroque (se mueven dos piezas), al paso (desaparece una pieza de una
+  casilla que no es ni `from` ni `to`) y promoción (llega una pieza distinta de
+  la que salió). Las tres se verificaron entre dos navegadores.
+
 ---
 
 ## 10. Convenciones del repositorio
 
 - **Ramas:** Gitflow. `main` estable, `dev` de integración, `feature/*` para cada
-  bloque. El bloque 1 se desarrolló en `feature/socket-server`.
+  bloque. El bloque 1 se desarrolló en `feature/socket-server`; el bloque 2, en
+  `feature/react-client`.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`,
   `test:`), en inglés.
 - **Código:** en inglés, incluidos nombres y comentarios.
