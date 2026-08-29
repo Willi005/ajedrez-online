@@ -1,4 +1,4 @@
-# Ajedrez Online
+# Gambito
 
 Two-player online chess over a raw TCP socket, with an in-game chat. Games are
 paired with a short token — no accounts, no database, nothing persisted.
@@ -6,7 +6,9 @@ paired with a short token — no accounts, no database, nothing persisted.
 ## Tech Stack
 
 **Client** — [React](https://react.dev/) (JavaScript) + [Vite](https://vite.dev/),
-with `chess.js` for the game rules. No REST API, no database.
+with `chess.js` for the game rules. No REST API, no database. The interface
+follows an imported design system, Classical, whose two typefaces are bundled
+rather than fetched from a CDN so the app works on a network with no internet.
 
 **Server** — Python 3.10+, standard library only. The RFC 6455 WebSocket
 handshake and frame codec are implemented by hand on top of a plain

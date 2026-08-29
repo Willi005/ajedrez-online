@@ -1,11 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
-import Chat from './components/Chat.jsx'
 import ErrorBanner from './components/ErrorBanner.jsx'
 import GameOver from './components/GameOver.jsx'
 import GameScreen from './components/GameScreen.jsx'
-import Lobby from './components/Lobby.jsx'
-import NicknameForm from './components/NicknameForm.jsx'
-import Piece from './components/Piece.jsx'
+import Home from './components/Home.jsx'
 import ServerSettings from './components/ServerSettings.jsx'
 import WaitingRoom from './components/WaitingRoom.jsx'
 import { useChessGame } from './hooks/useChessGame.js'
@@ -55,14 +52,19 @@ function boardOutcome({ isCheckmate, isDraw, turn }) {
   return null
 }
 
+/** The time on a chat line, the way the maquette writes it. */
+function stamp() {
+  return new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+}
+
 export default function App() {
   const [nickname, setNickname] = useState(readNickname)
-  const [editingNickname, setEditingNickname] = useState(false)
   const [serverUrl, setServerUrl] = useState(resolveServerUrl)
 
   const [phase, setPhase] = useState(PHASE.LOBBY)
   const [room, setRoom] = useState(null)
   const [outcome, setOutcome] = useState(null)
+  const [outcomeSeen, setOutcomeSeen] = useState(false)
   const [lastError, setLastError] = useState(null)
   const [messages, setMessages] = useState([])
 
@@ -76,13 +78,17 @@ export default function App() {
 
   const pushMessage = useCallback((message) => {
     nextMessageId.current += 1
-    setMessages((current) => [...current, { id: nextMessageId.current, ...message }])
+    setMessages((current) => [
+      ...current,
+      { id: nextMessageId.current, time: stamp(), ...message },
+    ])
   }, [])
 
   const returnToLobby = useCallback(() => {
     setPhase(PHASE.LOBBY)
     setRoom(null)
     setOutcome(null)
+    setOutcomeSeen(false)
     setMessages([])
     resetGame()
   }, [resetGame])
@@ -93,6 +99,7 @@ export default function App() {
         case SERVER_MESSAGE.CREATED:
           resetGame()
           setOutcome(null)
+          setOutcomeSeen(false)
           setMessages([])
           setRoom({
             token: message.token,
@@ -106,6 +113,7 @@ export default function App() {
         case SERVER_MESSAGE.START:
           resetGame()
           setOutcome(null)
+          setOutcomeSeen(false)
           setMessages([])
           setRoom({
             token: message.token,
@@ -116,7 +124,7 @@ export default function App() {
           setPhase(PHASE.PLAYING)
           pushMessage({
             kind: 'system',
-            text: `Empieza la partida contra ${message.opponent}.`,
+            text: `La partida comenzó contra ${message.opponent}`,
           })
           break
 
@@ -136,7 +144,7 @@ export default function App() {
         case SERVER_MESSAGE.OPPONENT_LEFT:
           setOutcome({ reason: 'opponent_left', winner: null })
           setPhase(PHASE.FINISHED)
-          pushMessage({ kind: 'system', text: 'Tu rival dejó la partida.' })
+          pushMessage({ kind: 'system', text: 'Tu rival dejó la partida' })
           break
 
         case SERVER_MESSAGE.ERROR:
@@ -183,20 +191,21 @@ export default function App() {
 
   // -- actions --------------------------------------------------------------
 
-  function handleNicknameSubmit(value) {
+  function rememberNickname(value) {
     setNickname(value)
     writeNickname(value)
-    setEditingNickname(false)
   }
 
-  function handleCreate() {
+  function handleCreate(player) {
     setLastError(null)
-    send(createMessage(nickname))
+    rememberNickname(player)
+    send(createMessage(player))
   }
 
-  function handleJoin(token) {
+  function handleJoin(player, token) {
     setLastError(null)
-    send(joinMessage(token, nickname))
+    rememberNickname(player)
+    send(joinMessage(token, player))
   }
 
   function reportDisconnected(detail) {
@@ -252,75 +261,80 @@ export default function App() {
 
   // -- rendering ------------------------------------------------------------
 
-  function renderContent() {
-    if (!nickname || editingNickname) {
-      return <NicknameForm initialValue={nickname} onSubmit={handleNicknameSubmit} />
-    }
+  const inRoom = (phase === PHASE.PLAYING || phase === PHASE.FINISHED) && room
 
+  function statusText() {
+    if (effectiveOutcome) return 'Partida terminada'
+    if (!isOpen) return 'Sin conexión'
+    const myColor = room.color === 'white' ? 'w' : 'b'
+    return game.state.turn === myColor
+      ? 'Tu turno'
+      : `Juega ${room.opponent}`
+  }
+
+  function renderContent() {
     if (phase === PHASE.WAITING && room) {
       return <WaitingRoom token={room.token} onCancel={reconnect} />
     }
 
-    if ((phase === PHASE.PLAYING || phase === PHASE.FINISHED) && room) {
+    if (inRoom) {
       // Chatting still works after a resignation — both players are in the room
       // until one of them leaves — but not once the opponent's socket is gone,
       // which is when the server would answer NO_OPPONENT.
       const canChat = isOpen && effectiveOutcome?.reason !== 'opponent_left'
 
       return (
-        <div className="game-layout">
-          <GameScreen
-            game={game}
-            room={room}
-            isGameActive={phase === PHASE.PLAYING && isOpen && !effectiveOutcome}
-            onMove={handleMove}
-            onResign={handleResign}
-          />
-          <aside className="game-layout__side">
-            {effectiveOutcome && (
-              <GameOver
-                outcome={effectiveOutcome}
-                myColor={room.color}
-                onReturn={reconnect}
-              />
-            )}
-            <Chat messages={messages} canSend={canChat} onSend={handleChatSend} />
-          </aside>
-        </div>
+        <GameScreen
+          game={game}
+          room={room}
+          isGameActive={phase === PHASE.PLAYING && isOpen && !effectiveOutcome}
+          statusText={statusText()}
+          chat={{ messages, canSend: canChat, onSend: handleChatSend }}
+          onMove={handleMove}
+          onResign={handleResign}
+        />
       )
     }
 
     return (
-      <Lobby
+      <Home
         nickname={nickname}
         canAct={isOpen}
         onCreate={handleCreate}
         onJoin={handleJoin}
-        onChangeNickname={() => setEditingNickname(true)}
       />
     )
   }
 
   return (
-    <div className="app">
-      <header className="brand">
-        <Piece type="n" color="w" className="brand__mark" />
-        <h1>Ajedrez en línea</h1>
-      </header>
-
-      <main className="app__content">{renderContent()}</main>
-
+    <div className={`app${inRoom ? ' app--match' : ''}`}>
       {lastError && (
         <ErrorBanner error={lastError} onDismiss={() => setLastError(null)} />
       )}
 
-      <ServerSettings
-        serverUrl={serverUrl}
-        status={status}
-        attempt={attempt}
-        onChange={handleServerUrlChange}
-        onReset={handleServerUrlReset}
-      />
+      <main className="app__content">{renderContent()}</main>
+
+      <footer className="app__footer">
+        <ServerSettings
+          serverUrl={serverUrl}
+          status={status}
+          attempt={attempt}
+          onChange={handleServerUrlChange}
+          onReset={handleServerUrlReset}
+        />
+      </footer>
+
+      {inRoom && effectiveOutcome && !outcomeSeen && (
+        <GameOver
+          outcome={effectiveOutcome}
+          myColor={room.color}
+          moveCount={Math.ceil(game.state.history.length / 2)}
+          token={room.token}
+          getPgn={game.getPgn}
+          onReturn={reconnect}
+          onDismiss={() => setOutcomeSeen(true)}
+        />
+      )}
     </div>
   )
 }

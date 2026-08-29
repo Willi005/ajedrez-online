@@ -1,660 +1,818 @@
 /*
- * Layout and components.
+ * Gambito — layout.
  *
- * Colours, spacing and radii all come from the tokens in index.css; nothing
- * here names a raw value.
+ * The screens of the maquette (Gambito.dc.html), built on the Classical
+ * component layer in design-system.css. Nothing here names a raw colour, and
+ * the measurements are the maquette's own wherever it gave one.
  *
- * The page is slate and the content is white, so a card separates itself from
- * the page by being white at all: `.card` is the one container, used for every
- * block that holds something the player acts on.
+ * Two things it could not give: what happens on a narrow screen, and what
+ * happens when a value is longer than the box drawn for it. Every artboard in
+ * the maquette is one fixed desktop width with one plausible nickname in it.
  */
 
 .app {
-  width: 100%;
-  max-width: 1060px;
-  min-height: 100vh;
-  padding: var(--space-5) var(--space-4) var(--space-6);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-5);
-}
-
-/* -- header ---------------------------------------------------------------- */
-
-/* No rule under the masthead any more: on slate the type carries it on its
-   own, and a hairline only made the page quieter. */
-.brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-}
-
-/* The knight from the board, re-tinted so it reads as part of the masthead
-   lettering rather than as a badge stuck next to it. Its own colours are meant
-   for a board square and would not hold here. */
-.brand__mark {
-  width: 2rem;
-  height: 2rem;
-  color: var(--foreground);
-  --piece-stroke: var(--foreground);
-  --piece-detail: var(--surface);
+  min-height: 100vh;
 }
 
 .app__content {
-  width: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-4);
+  min-height: 0;
 }
 
-/* The forms are read one at a time and should not stretch across the page;
-   the board layout sets its own width. */
-.app__content > .card,
-.app__content > .lobby {
-  max-width: 27rem;
+.app__footer {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-divider);
 }
 
-/* -- blocks ---------------------------------------------------------------- */
-
-/* The screens that are a single narrow column — nickname, lobby, waiting room
-   — are set centred: there is one thing to do at a time and nothing to align
-   against. The board views are deliberately left out of this. Everything there
-   lines up with the board, and the seats have to stay at its edges. */
-.card,
-.lobby {
-  text-align: center;
-}
-
-.card .row,
-.lobby .row {
-  justify-content: center;
-}
-
-/* A field does not inherit the alignment, and on these screens each one holds a
-   single short value that reads better centred. The server address, which is
-   long and lives outside these blocks, stays left. */
-.card input,
-.lobby input {
-  text-align: center;
-}
-
-/* The one container. White on a slate page is what makes it a card; the border
-   is there for the edge, not to do the separating. */
-.card {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-5);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-}
-
-/* Names a control rather than heading something to be read, so it is set as a
-   tracked label instead of as a heading. */
-.section__title {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  line-height: 1.4;
+/* The kicker above a screen title. Same idea as `.card-kicker`, one step up in
+   size because it heads a page rather than a card. */
+.kicker {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--color-accent-700);
 }
 
-.row {
+/* -- strip ----------------------------------------------------------------- */
+
+/* The full-width notice the maquette runs under the nav bar. It is the only
+   place in the design where a tint covers the whole width, which is what makes
+   it read as an interruption rather than as content. */
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+}
+
+.strip--danger {
+  background: var(--color-danger-100);
+  border-bottom: 1px solid var(--color-danger-300);
+  color: var(--color-danger-800);
+}
+
+.strip__dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-danger-700);
+}
+
+.strip__text {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
+  font-size: 13px;
+  min-width: 0;
 }
 
-.hint {
-  font-size: 0.875rem;
-  color: var(--muted);
+.strip__title {
+  font-weight: 600;
 }
 
-.greeting {
+.strip__hint {
+  opacity: 0.85;
+}
+
+.strip__code {
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.strip__dismiss {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  color: inherit;
+}
+
+.strip__dismiss:hover {
+  background: color-mix(in srgb, var(--color-danger-700) 12%, transparent);
+}
+
+/* -- home ------------------------------------------------------------------ */
+
+/* Both tracks are `minmax(0, …)` rather than a bare fraction. A grid track's
+   default minimum is its content's min-content width, and the card in the right
+   half is 400px wide: left to itself the track would refuse to go under 400 and
+   the whole page would scroll sideways on a narrow screen. */
+.home {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+}
+
+.home__intro {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 26px;
+  padding: 80px 72px;
+}
+
+.home__title {
+  /* The bigger the text, the lighter it sets: display sizes take the normal cut
+     of Cormorant, not the semibold the interface headings use. */
+  margin: 0;
+  font-weight: 400;
+  font-size: 76px;
+  line-height: 0.98;
+}
+
+.home__lede {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 16px;
+  text-wrap: pretty;
+}
+
+.home__rule {
+  margin: 6px 0;
+  max-width: 420px;
+}
+
+.steps {
+  display: grid;
+  gap: 16px;
+  max-width: 420px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps__item {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 14px;
+  align-items: baseline;
+  font-size: 14px;
+}
+
+.steps__numeral {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  color: var(--color-accent-700);
+}
+
+.home__panel {
+  display: grid;
+  place-items: center;
+  /* Same reason: without this the track takes the card's fixed 400px as its
+     minimum, and the card's own `max-width: 100%` measures against that track
+     and so can never bite. */
+  grid-template-columns: minmax(0, 1fr);
+  padding: 56px;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-divider);
+}
+
+/* The one card on the page sits on the page colour, inside the surface panel:
+   the surface is what makes the card read as lifted, not a shadow. */
+.home__form {
+  width: 400px;
+  max-width: 100%;
+  padding: 30px;
+  gap: 20px;
+  background: var(--color-bg);
+}
+
+.home__form-title {
+  margin: 0;
+  font-size: 27px;
+}
+
+.home__seg {
+  width: 100%;
+}
+
+.home__seg .seg-opt {
+  flex: 1;
+  justify-content: center;
+}
+
+.home__fineprint {
+  margin: 0;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* Below the split, the two halves stack: the form first, because on a phone the
+   thing to do outranks the thing to read. */
+@media (max-width: 56rem) {
+  .home {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home__intro {
+    order: 2;
+    padding: var(--space-6) var(--space-4);
+    gap: var(--space-4);
+  }
+
+  .home__title {
+    font-size: clamp(48px, 14vw, 76px);
+  }
+
+  .home__panel {
+    order: 1;
+    padding: var(--space-6) var(--space-4);
+    border-left: none;
+    border-bottom: 1px solid var(--color-divider);
+  }
+}
+
+/* -- centred screens ------------------------------------------------------- */
+
+.sheet {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  font-size: 0.9375rem;
-  color: var(--muted);
+  gap: 26px;
+  padding: 56px var(--space-4);
 }
 
-.greeting strong {
-  color: var(--foreground);
-  font-weight: 600;
+.sheet > * {
+  width: 540px;
+  max-width: 100%;
 }
 
-/* A button that has to read as a link inside a sentence. */
-.link {
-  min-height: auto;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--primary);
-  font-size: inherit;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.link:hover:not(:disabled) {
-  border: none;
-  color: var(--primary-hover);
-}
-
-/* -- lobby ----------------------------------------------------------------- */
-
-.lobby {
-  width: 100%;
+.sheet__head {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 10px;
+  text-align: center;
 }
 
-.lobby form {
+.sheet__title {
+  margin: 0;
+  font-weight: 400;
+  font-size: 38px;
+}
+
+.sheet__card {
+  padding: 28px;
+  gap: 18px;
+  background: var(--color-bg);
+}
+
+/* -- the token ------------------------------------------------------------- */
+
+.token-row {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  align-items: center;
+  gap: 16px;
 }
 
-/* The trailing letter-space is part of the text box, so a centred token sits
-   half a space to the left; the extra padding on the left puts it back. */
-.token-input {
-  padding-left: calc(var(--space-3) + 0.25em);
-  font-family: var(--font-mono);
-  font-weight: 600;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-}
-
-/* The token is the one thing on the page that gets read out loud across a
-   room, so it is the heaviest thing on it: the only dark surface in the design.
-   The characters carry no separator, so selecting it still copies exactly the
-   five the other player has to type. */
+/* The one thing on the page that gets read out loud across a room. It carries
+   no separator between the characters, so selecting it copies exactly the five
+   the other player has to type. */
 .token-display {
-  padding: var(--space-4) 0 var(--space-4) 0.24em;
-  border-radius: var(--radius-md);
-  background: var(--plate);
-  color: var(--on-plate);
-  font-size: 2.5rem;
-  font-weight: 700;
-  letter-spacing: 0.24em;
-  line-height: 1.1;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-heading);
+  font-size: 50px;
+  font-weight: var(--font-heading-weight);
+  letter-spacing: 0.08em;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+/* The token as it is typed, set the way the Unirse artboard sets it. */
+.token-input {
+  min-height: 52px;
+  /* The trailing letter-space belongs to the text box, so a centred token sits
+     half a space to the left; the padding puts it back. */
+  padding-left: calc(10px + 0.12em);
+  font-family: var(--font-heading);
+  font-size: 22px;
+  letter-spacing: 0.12em;
   text-align: center;
   text-transform: uppercase;
 }
 
-/* -- game layout ----------------------------------------------------------- */
+.waiting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 13px;
+}
 
-.game-layout {
-  width: 100%;
+.waiting__side {
+  margin-left: auto;
+}
+
+/* The maquette's pulse, which it uses to say that something is still pending.
+   Only a pending thing pulses; a settled state holds still. */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-accent-700);
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+/* -- the match ------------------------------------------------------------- */
+
+.match {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.match__nav {
+  background: var(--color-bg);
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+}
+
+.match__room {
+  letter-spacing: 0.06em;
+}
+
+.match__status {
+  font-size: 13px;
+}
+
+.match__resign {
+  margin-left: auto;
+}
+
+.match__body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 320px;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.match__board {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-4);
+  gap: 14px;
+  padding: 26px var(--space-4);
 }
 
-.game-layout__side {
+/* The seats span the board and its rank gutter, so the three blocks share one
+   left edge instead of the seats hanging half a gutter into the board. */
+.match__board .seat,
+.match__board .board-frame,
+.match__check {
   width: 100%;
-  max-width: 30rem;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
+  max-width: calc(544px + 28px);
 }
 
-/* Wide enough for the board and the chat to sit next to each other. Below this
-   they stack, board first: it is what the player came for.
-
-   The board column is `minmax(0, auto)` so that on a screen only just wide
-   enough the board gives up width instead of pushing the chat off the page —
-   `.board` is capped at `max-width: 100%` and follows. */
-@media (min-width: 54rem) {
-  .game-layout {
-    display: grid;
-    grid-template-columns: minmax(0, auto) minmax(15rem, 21rem);
-    align-items: stretch;
-    justify-content: center;
-    gap: var(--space-5);
-  }
-
-  .game-layout__side {
-    max-width: none;
-  }
-
-  /* Fill the row, whose height the board sets, so the chat ends level with it. */
-  .game-layout__side .chat {
-    flex: 1;
-    min-height: 0;
-  }
-
-  /* The log takes the slack so the composer sits at the foot of the panel. */
-  .game-layout__side .chat__log {
-    flex: 1;
-    max-height: none;
-  }
-}
-
-.game {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-2);
+.match__check {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  text-align: center;
+  color: var(--color-danger-700);
 }
 
 /* -- seats ----------------------------------------------------------------- */
 
 .seat {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
-  min-height: 3rem;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  transition:
-    background-color var(--duration) var(--ease),
-    border-color var(--duration) var(--ease);
-}
-
-/* Whose move it is. The border stays the same width in both states so the
-   board never shifts when the turn changes. */
-.seat--to-move {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-}
-
-.seat--to-move .seat__name {
-  color: var(--primary);
-}
-
-.seat__color {
-  width: 0.75rem;
-  height: 0.75rem;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-pill);
-}
-
-.seat__color--white {
-  background: var(--piece-white);
-}
-
-.seat__color--black {
-  background: var(--piece-black);
+  gap: 12px;
+  min-height: 44px;
 }
 
 .seat__name {
   min-width: 0;
-  font-size: 1.0625rem;
-  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: 19px;
   overflow-wrap: anywhere;
 }
 
-.seat__role {
-  font-size: 0.8125rem;
-  color: var(--muted);
+.seat__you {
+  letter-spacing: 0.04em;
 }
 
-/* Push whatever follows the name — the resign control — to the far edge. */
-.seat > :last-child:not(.seat__role) {
+/* Where the maquette put a clock. There is no clock — the server keeps no time
+   and the protocol carries none — but the slot was there to say who the board
+   is waiting on, and that it can say honestly. */
+.seat__turn {
   margin-left: auto;
+  padding: 2px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-heading);
+  font-size: 15px;
+  color: color-mix(in srgb, var(--color-text) 65%, transparent);
+}
+
+.seat__turn--active {
+  border-color: var(--color-divider);
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
 }
 
 .resign-confirm {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin-left: auto;
 }
 
 .resign-confirm__question {
-  font-size: 0.875rem;
-  color: var(--muted);
+  font-size: 13px;
 }
 
-/* -- game status ----------------------------------------------------------- */
+/* -- avatars --------------------------------------------------------------- */
 
-.game__turn {
-  font-size: 0.9375rem;
-  color: var(--muted);
-  text-align: center;
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
 }
 
-.game__check {
-  color: var(--danger);
+.avatar--md {
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
 }
 
-.game__token {
-  font-size: 0.8125rem;
-  color: var(--muted);
-  text-align: center;
+.avatar--white {
+  border: 1px solid var(--color-neutral-800);
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-900);
 }
 
-.promotion {
-  padding: var(--space-3);
-  border: 1px solid var(--border);
+.avatar--black {
+  background: var(--color-neutral-900);
+  color: var(--color-neutral-100);
+}
+
+/* -- side panels ----------------------------------------------------------- */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  min-height: 0;
+}
+
+.panel--history {
+  border-right: 1px solid var(--color-divider);
+}
+
+.panel--chat {
+  gap: 12px;
+  border-left: 1px solid var(--color-divider);
+}
+
+.panel__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.panel__title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.panel__count {
+  margin-left: auto;
+  font-size: 11px;
+}
+
+.panel__actions {
+  display: flex;
+  align-items: center;
+}
+
+/* -- move list ------------------------------------------------------------- */
+
+.table-frame {
+  border: 1px solid var(--color-divider);
   border-radius: var(--radius-md);
-  background: var(--surface);
+  overflow: auto;
+  max-height: 34vh;
+}
+
+.history {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The header stays put while the moves scroll under it. */
+.history thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg);
+}
+
+.history__number {
+  width: 38px;
+}
+
+.history tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* The one place the maquette's font choice could not be kept.
+   It sets the moves in the heading face at 15px, and at that size Cormorant's
+   lowercase e loses its crossbar and reads as a c — which in algebraic notation
+   is not a nicer letterform, it is a different square. Checked against Lora at
+   the same size and the crossbar is unmistakable, so the moves are set in the
+   body face, at the semibold the maquette wanted the weight of. Everything else
+   the maquette sets in Cormorant is a word, an uppercase letter or a figure,
+   where the reader's context does the disambiguating and the face stays. */
+.history__san {
+  font-family: var(--font-body);
+  font-weight: var(--font-heading-weight);
+  font-size: 14px;
+}
+
+/* The move just played. */
+.history__san--last {
+  color: var(--color-accent-700);
+}
+
+.history__empty {
+  font-size: 13px;
+}
+
+/* -- captured pieces ------------------------------------------------------- */
+
+.captured {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.captured__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+}
+
+.captured__label {
+  width: 58px;
+  flex: none;
+}
+
+.captured__pieces {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* Off the board there is no square behind them, so the contour is the only
+   thing holding a white piece against the page. */
+.piece--taken {
+  width: 18px;
+  height: 18px;
+}
+
+.captured__edge {
+  margin-left: auto;
+  font-family: var(--font-heading);
+  font-size: 14px;
+  color: var(--color-accent-700);
+}
+
+/* -- chat ------------------------------------------------------------------ */
+
+.chat__log {
+  flex: 1;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.chat__note {
   text-align: center;
+  font-size: 11px;
 }
 
-.promotion p {
-  margin-bottom: var(--space-2);
-  font-size: 0.875rem;
-  color: var(--muted);
+.chat__row {
+  display: flex;
 }
 
-.promotion .row {
-  justify-content: center;
+.chat__row--opponent {
+  justify-content: flex-start;
+}
+
+.chat__row--self {
+  justify-content: flex-end;
+}
+
+.chat__bubble {
+  display: flex;
+  flex-direction: column;
+  max-width: 86%;
+  padding: 9px 12px;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  overflow-wrap: anywhere;
+}
+
+/* Who said what is carried by the side of the column and by the tint, not by
+   the name alone. */
+.chat__row--self .chat__bubble {
+  border-color: var(--color-accent-300);
+  background: var(--color-accent-100);
+}
+
+.chat__author {
+  margin-bottom: 3px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-700);
+}
+
+.chat__text {
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.chat__composer {
+  display: flex;
+  gap: 8px;
+}
+
+.chat__composer .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat__quick {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chat__phrase {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.chat__counter {
+  margin: 0;
+  font-size: 11px;
+}
+
+/* -- dialogs --------------------------------------------------------------- */
+
+.dialog-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 12px;
+}
+
+.dialog-actions {
+  flex-wrap: wrap;
+}
+
+.promotion__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .promotion__option {
+  flex: 1;
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-2);
+  min-width: 72px;
 }
 
-/* Away from the board, a white piece on pale paper would vanish, so each
+/* Away from the board a white piece would have nothing behind it, so each
    option carries a square of board with it. */
 .promotion__option .piece {
-  width: 2.6rem;
-  height: 2.6rem;
-  padding: 0.2rem;
+  width: 42px;
+  height: 42px;
+  padding: 2px;
   border-radius: var(--radius-sm);
   background: var(--board-light);
 }
 
 .promotion__name {
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 11px;
   /* The piece names are stored lower case for the accessible square labels
      ("Casilla b8, torre blanco"); here they head a button. */
   text-transform: capitalize;
 }
 
-/* -- end of game ----------------------------------------------------------- */
-
-.game-over {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--muted);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-}
-
-.game-over--win {
-  border-left-color: var(--primary);
-  background: var(--primary-soft);
-}
-
-.game-over--loss {
-  border-left-color: var(--danger);
-  background: var(--danger-soft);
-}
-
-.game-over--neutral {
-  border-left-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.game-over__headline {
-  font-size: 1.25rem;
-}
-
-.game-over__headline:focus-visible {
-  outline-offset: 4px;
-}
-
-.game-over__detail {
-  font-size: 0.875rem;
-  color: var(--muted);
-}
-
-.game-over button {
-  margin-top: var(--space-1);
-}
-
-/* -- chat ------------------------------------------------------------------ */
-
-.chat {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-}
-
-.chat__log {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  /* Tall enough to hold a few lines when stacked under the board; the
-     side-by-side layout stretches it to the height of the board. */
-  min-height: 9rem;
-  max-height: 24rem;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-  overscroll-behavior: contain;
-}
-
-.chat__empty {
-  margin: auto 0;
-  color: var(--muted);
-  font-size: 0.875rem;
-  text-align: center;
-}
-
-.chat__line {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-width: 85%;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: 0.9375rem;
-  overflow-wrap: anywhere;
-}
-
-/* Who said what is carried by the side of the column, not only by the name. */
-.chat__line--opponent {
-  align-self: flex-start;
-  background: var(--surface-sunken);
-  border-bottom-left-radius: var(--radius-sm);
-}
-
-.chat__line--self {
-  align-self: flex-end;
-  background: var(--primary-soft);
-  border-bottom-right-radius: var(--radius-sm);
-}
-
-.chat__line--system {
-  align-self: center;
-  max-width: 100%;
-  padding: var(--space-1) 0;
-}
-
-.chat__author {
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.chat__system {
-  color: var(--muted);
-  font-size: 0.8125rem;
-  font-style: italic;
-  text-align: center;
-}
-
-.chat__composer {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.chat__composer input {
-  flex: 1;
-  min-width: 0;
-}
-
-.chat__counter {
-  font-size: 0.75rem;
-  color: var(--accent);
-}
-
-/* -- error banner ---------------------------------------------------------- */
-
-.banner {
-  width: 100%;
-  max-width: 27rem;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--danger);
-  border-radius: var(--radius-md);
-  background: var(--danger-soft);
-}
-
-.banner__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.banner__title {
-  font-size: 1.0625rem;
-  font-weight: 700;
-}
-
-.banner__hint,
-.banner__code {
-  font-size: 0.875rem;
-  color: var(--muted);
-}
-
-.banner__dismiss {
-  min-height: 2rem;
-  width: 2rem;
-  flex-shrink: 0;
-  margin-left: auto;
-  padding: 0;
-  border-color: transparent;
-  background: transparent;
-  color: var(--muted);
-}
-
-.banner__dismiss svg {
-  width: 1.125rem;
-  height: 1.125rem;
-}
-
 /* -- server settings ------------------------------------------------------- */
 
-.server-settings {
-  width: 100%;
-  margin-top: auto;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  font-size: 0.875rem;
-}
-
-/* The summary is a status line and follows the centred column above it; the
-   form it opens goes back to a normal left-aligned form. */
-.server-settings summary {
+.server-settings__summary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
   gap: var(--space-2);
-  color: var(--muted);
-  /* Centring a list item leaves its marker adrift, and the chevron says
-     nothing the rest of the row does not. */
-  list-style: none;
+  font-size: 13px;
   cursor: pointer;
+  /* Centring a list marker leaves it adrift, and the chevron says nothing the
+     rest of the row does not. */
+  list-style: none;
 }
 
-.server-settings summary::-webkit-details-marker {
+.server-settings__summary::-webkit-details-marker {
   display: none;
 }
 
-.server-settings form {
-  margin-inline: auto;
-  text-align: left;
+.server-settings__url {
+  overflow-wrap: anywhere;
 }
 
-
-.server-settings form {
-  max-width: 27rem;
+.server-settings__form {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  max-width: 420px;
   margin-top: var(--space-3);
 }
 
-/* The connection state, as a chip that can be read at a glance from across a
-   classroom. The dot repeats it without relying on colour alone. */
-.status {
-  display: inline-flex;
-  align-items: center;
+.server-settings__actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-pill);
-  font-size: 0.8125rem;
-  font-weight: 600;
 }
 
-.status::before {
-  content: '';
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: var(--radius-pill);
-  background: currentColor;
-}
+/* -- the match, narrowed --------------------------------------------------- */
 
-.status--open {
-  background: var(--primary-soft);
-  color: var(--primary);
-}
+/* Below this the three columns cannot hold: 300 + 320 leaves the board less
+   than half the row. They stack, board first — it is what the player came for —
+   then the chat, then the move list. */
+@media (max-width: 68rem) {
+  .match__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-.status--connecting {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
+  .match__board {
+    order: 1;
+    padding: var(--space-4);
+  }
 
-.status--closed,
-.status--idle {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
+  .panel--chat {
+    order: 2;
+    border-left: none;
+    border-top: 1px solid var(--color-divider);
+  }
 
-/* Only the connecting dot pulses: a steady state should not keep moving. */
-.status--connecting::before {
-  animation: status-pulse 1.4s var(--ease) infinite;
-}
+  .panel--history {
+    order: 3;
+    border-right: none;
+    border-top: 1px solid var(--color-divider);
+  }
 
-@keyframes status-pulse {
-  50% {
-    opacity: 0.25;
+  .panel {
+    max-width: calc(544px + 28px + 40px);
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  .chat__log {
+    min-height: 12rem;
+    max-height: 22rem;
+  }
+
+  .table-frame {
+    max-height: 18rem;
   }
 }

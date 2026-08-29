@@ -9,12 +9,21 @@ const STATUS_LABELS = {
   [CONNECTION_STATUS.CLOSED]: 'Desconectado',
 }
 
+/** The connection, as one of the design system's tags. */
+const STATUS_TONES = {
+  [CONNECTION_STATUS.OPEN]: 'tag-accent',
+  [CONNECTION_STATUS.CONNECTING]: 'tag-outline',
+  [CONNECTION_STATUS.CLOSED]: 'tag-danger',
+  [CONNECTION_STATUS.IDLE]: 'tag-danger',
+}
+
 /**
  * Lets the player retarget the server without rebuilding.
  *
  * This is the demo's fallback plan: if the classroom network isolates the
  * machines, both players point the client at 127.0.0.1 and run the server
- * locally.
+ * locally. It sits in the page footer, below everything, because it is
+ * plumbing and not part of the game.
  */
 export default function ServerSettings({ serverUrl, status, attempt, onChange, onReset }) {
   const [draft, setDraft] = useState(serverUrl)
@@ -38,36 +47,47 @@ export default function ServerSettings({ serverUrl, status, attempt, onChange, o
 
   return (
     <details className="server-settings">
-      <summary>
-        Servidor: <code>{serverUrl}</code>{' '}
-        <span className={`status status--${status}`}>
+      <summary className="server-settings__summary">
+        <span className="text-muted">Servidor</span>
+        <code className="server-settings__url">{serverUrl}</code>
+        <span className={`tag ${STATUS_TONES[status]}`}>
           {STATUS_LABELS[status]}
           {status === CONNECTION_STATUS.CONNECTING && attempt > 0
-            ? ` (intento ${attempt + 1})`
+            ? ` · intento ${attempt + 1}`
             : ''}
         </span>
       </summary>
 
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="server-url">Dirección del servidor</label>
-        <input
-          id="server-url"
-          type="text"
-          value={draft}
-          autoComplete="off"
-          spellCheck="false"
-          placeholder="ws://127.0.0.1:8765"
-          onChange={(event) => setDraft(event.target.value)}
-        />
-        <div className="row">
-          <button type="submit" disabled={!canApply}>
+      <form className="server-settings__form" onSubmit={handleSubmit}>
+        <div className="field">
+          <label htmlFor="server-url">Dirección del servidor</label>
+          <input
+            className="input"
+            id="server-url"
+            type="text"
+            value={draft}
+            autoComplete="off"
+            spellCheck="false"
+            placeholder="ws://127.0.0.1:8765"
+            onChange={(event) => setDraft(event.target.value)}
+          />
+        </div>
+
+        <div className="server-settings__actions">
+          <button type="submit" className="btn btn-primary" disabled={!canApply}>
             Aplicar y reconectar
           </button>
-          <button type="button" onClick={onReset} disabled={!isOverridden}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onReset}
+            disabled={!isOverridden}
+          >
             Volver a la predeterminada
           </button>
         </div>
-        <p className="hint">
+
+        <p className="card-body text-muted">
           Predeterminada de la compilación: <code>{ENV_SERVER_URL}</code>. Cambiar
           la dirección reinicia la conexión y te devuelve al inicio.
         </p>

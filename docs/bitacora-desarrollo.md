@@ -159,8 +159,8 @@ y `server.py` → `websocket.py`. No hay ciclos.
 | `src/hooks/useChessGame.js` | Una instancia de `chess.js` y una foto inmutable de la posición para React. |
 | `src/components/Board.jsx` | Tablero en CSS Grid, volteado para las negras. Solo presentación. |
 | `src/components/Piece.jsx` | Las seis piezas dibujadas en SVG. |
-| `src/components/NicknameForm.jsx` | Primera vista: pide el apodo. |
-| `src/components/Lobby.jsx` | Crear partida o unirse con un token. |
+| `src/components/NicknameForm.jsx` | Primera vista: pide el apodo. *(Fundido en `Home.jsx` en el rediseño; ver más abajo.)* |
+| `src/components/Lobby.jsx` | Crear partida o unirse con un token. *(Ídem.)* |
 | `src/components/WaitingRoom.jsx` | Muestra el token mientras no llega el rival. |
 | `src/components/GameScreen.jsx` | La partida: turno, selección de casillas, promoción. |
 | `src/components/PromotionPicker.jsx` | Pregunta la pieza antes de enviar la jugada. |
@@ -185,6 +185,37 @@ cuenta: todos los mensajes salen y entran por `App.jsx`.
 El bloque no añadió ni una llamada de socket: se apoya entero en el contrato de
 la sección 4, que ya tenía `chat`, `resign` y `game_over`. Tampoco tocó ningún
 archivo del servidor.
+
+### Archivos de la maqueta Gambito
+
+La interfaz se rehízo sobre un diseño externo (ver la entrada del 29 de agosto
+en la sección 9). Estos son los archivos que cambiaron de forma o aparecieron:
+
+| Archivo | Responsabilidad |
+|---|---|
+| `src/index.css` | Los tokens del sistema Classical y los valores por defecto de los elementos. |
+| `src/design-system.css` | La capa de componentes del sistema: `.btn`, `.card`, `.tag`, `.nav`, `.table`, `.dialog`, `.input`, `.seg`, `.hr`. |
+| `src/App.css` | Las pantallas de la maqueta montadas sobre esa capa. |
+| `src/components/Home.jsx` | La vista de inicio: apodo, crear o unirse. Sustituye a `NicknameForm.jsx` y `Lobby.jsx`. |
+| `src/components/MoveHistory.jsx` | La columna izquierda de la partida: lista de jugadas, PGN y piezas capturadas. |
+| `src/components/Avatar.jsx` | La inicial del jugador en un círculo del color que juega. |
+| `src/components/CopyButton.jsx` | Copiar al portapapeles y decirlo por un momento. Lo usan el token y el PGN. |
+| `src/components/Icon.jsx` | Los cuatro iconos de Lucide que la interfaz necesita, en línea. |
+
+Se eliminaron `src/components/NicknameForm.jsx` y `src/components/Lobby.jsx`:
+la maqueta pide el apodo y la elección de crear o unirse en una sola tarjeta, y
+las dos vistas se fundieron en `Home.jsx`. El apodo se sigue recordando entre
+visitas.
+
+Dos funciones nuevas en `src/lib/pieces.js` sostienen la columna izquierda, y
+ninguna de las dos habla con el servidor:
+
+- `capturedMaterial(board)` cuenta las piezas que faltan **en la posición**, no
+  en la lista de jugadas: una resincronización carga un FEN y deja a `chess.js`
+  sin historial, mientras que el tablero siempre es correcto.
+- `toSpanishSan(san)` pasa `Nf3` a `Cf3` para la pantalla. El PGN que va al
+  portapapeles se queda en inglés, que es el estándar: un PGN en español no
+  abriría en ningún otro programa.
 
 ---
 
@@ -753,13 +784,131 @@ anterior: la paleta slate/azul se reemplazó por Flexoki Light.
 - Se quitó la banda de la corona del rey: era un trazo horizontal de lado a lado
   y se leía como un tachón. La cruz ya identifica la pieza.
 
+### 29 de agosto de 2026 — Rediseño sobre la maqueta Gambito
+
+**Los valores de color vigentes son los de esta entrada.** La paleta Flexoki
+Light de la entrada anterior queda sustituida por el sistema Classical, que
+llega con el diseño importado.
+
+Se importó un diseño externo hecho en Claude Design: el proyecto **Gambito**
+(`2bf8ef68-e506-4962-a19e-ff5d6c3cc262`), que trae una maqueta de todas las
+pantallas (`Gambito.dc.html`) y un sistema de diseño propio, **Classical**
+(`_ds/classical-…/styles.css` y su `readme.md`). La aplicación pasa a llamarse
+Gambito.
+
+- **Qué es Classical.** Un sistema editorial sobre un fondo casi blanco
+  `#F3F2F2`: Cormorant Garamond para los títulos sobre Lora para el texto,
+  filetes de un píxel, y el color aplicado como trazo y no como relleno. Un solo
+  acento, un dorado `#B68235`, con rampas de 100 a 900 generadas en OKLCH sobre
+  una misma escala de luminosidad. Los botones son contorno, nunca relleno; las
+  tarjetas van bordeadas y sin fondo.
+- **Las dos fuentes se instalaron, no se enlazaron.** El sistema las carga desde
+  el CDN de Google Fonts. Esta aplicación se muestra en una LAN sin salida a
+  internet —que es el objeto entero del ejercicio— y ese enlace fallaría justo
+  durante la demostración. Van como paquetes npm (`@fontsource/…`), solo el
+  subconjunto latino y solo los pesos 400 y 600: cuatro archivos que Vite mete
+  en el build. Mismas tipografías, ninguna petición de red.
+
+**Tres cosas del sistema importado hubo que corregirlas, y las tres son de
+contraste sobre texto pequeño:**
+
+- **`.text-muted` se mezcla al 65%, no al 55%.** Al 55% mide **3.6:1** sobre la
+  página, y todo lo que aquí lleva esa clase —pistas, pies, el contador de
+  jugadas, las coordenadas del tablero— es texto pequeño, que necesita 4.5:1.
+  65% es el primer paso que lo consigue sobre los cuatro fondos de la
+  aplicación: página 4.6:1, superficie 4.6:1, casilla clara 4.6:1, casilla
+  oscura 4.5:1.
+- **El acento en texto pasa a `accent-700`.** Esto no es una desviación: el
+  propio `readme.md` de Classical dice que el par acento/fondo está ajustado a
+  3:1, «suficiente para iconos, texto grande y cromo de interfaz», y que para
+  texto de tamaño de párrafo se use un paso profundo de la rampa. El
+  `.card-kicker` de 10px, la etiqueta de autor del chat y las etiquetas de los
+  botones son texto pequeño: van en `accent-700` (6.0:1 en vez de 3.0:1). El
+  borde de los botones sí se queda en el acento, que es cromo.
+- **Se añadió una rampa de peligro**, porque Classical es monocromo dorado y no
+  trae ningún color para algo que ha salido mal —y esta aplicación tiene un
+  servidor que puede rechazar una jugada, un token que se puede escribir mal y
+  un socket que se puede caer. Los cuatro pasos se generaron como dice el
+  readme que se generaron los demás: la misma luminosidad OKLCH que
+  `accent-100/300/700/800`, en un rojo cálido, tomando el mayor croma que se
+  queda dentro de sRGB. Resultado: `#FFF0EE`, `#FFC2B9`, `#A0322C`, `#73221E`.
+  Todos los pares de texto pasan de 4.5:1 (`danger-700` sobre la página, 6.3:1).
+
+**Un cambio tipográfico, y es el único sitio donde no se pudo respetar la
+maqueta:**
+
+- **La lista de jugadas va en Lora, no en Cormorant.** La maqueta la pone en la
+  tipografía de títulos a 15px, y a ese tamaño la `e` minúscula de Cormorant
+  pierde el travesaño y se lee como una `c`. En notación algebraica eso no es
+  una letra más bonita: `e4` y `c4` son casillas distintas. Comprobado al lado
+  con Lora al mismo tamaño, donde el travesaño es inequívoco. Todo lo demás que
+  la maqueta pone en Cormorant es una palabra, una mayúscula o una cifra, donde
+  el contexto desambigua, y ahí la tipografía se queda.
+
+**Qué de la maqueta se implementó y qué no.** El proyecto de diseño se
+sincronizó con el repositorio cuando `main` era todavía el andamio de Vite (así
+lo dice su `github.md`), de modo que la maqueta dibuja funciones que el
+protocolo de la sección 4 no tiene. Lo que se pudo cumplir con honestidad, se
+cumplió; lo que habría exigido mentir, no.
+
+Implementado, y todo con datos reales:
+
+| De la maqueta | Cómo se cumple |
+|---|---|
+| Pantalla Inicio partida en dos | Tal cual, incluidos el titular de 76px, los pasos I/II/III y el control segmentado. |
+| Pantalla Unirse | Dentro de la tarjeta de Inicio, con el campo de token del tamaño y el interletrado que ella le da. Es el control segmentado quien decide, y añadir un paso de navegación que el protocolo no necesita habría sido peor. |
+| Pantalla Crear sala | Tal cual, menos el enlace para compartir. |
+| Historial de jugadas | Real, desde `chess.js`, en notación española. |
+| Copiar PGN | Real, en inglés. |
+| Piezas capturadas y ventaja material | Reales, contadas desde la posición. |
+| Barra de navegación de la partida | Tal cual, con «Abandonar» que sí existe. |
+| Chat con burbujas y frases rápidas | Tal cual. Las tres frases envían un `chat` normal. |
+| Diálogo de fin de partida | Tal cual, con «Seguir aquí» en el lugar de la revancha. |
+| Franja de aviso a todo el ancho | Reutilizada para los errores del servidor, en la rampa de peligro. |
+
+No implementado, y por qué:
+
+| De la maqueta | Por qué no |
+|---|---|
+| Relojes 5+3 | El servidor no lleva tiempo y el protocolo no lo transporta. Su hueco en el asiento se conserva y dice lo que el reloj estaba ahí para decir: a quién le toca. |
+| Ofrecer tablas, revancha | Harían falta mensajes que la sección 4 no tiene. |
+| Pantalla de sala de espera con «Comenzar» | El servidor arranca la partida en cuanto el segundo jugador entra; un botón que no hiciera nada sería un adorno mentiroso. Su contenido (avatar, nombre, color, estado) vive en los asientos de la partida. |
+| Franja de reconexión | El servidor destruye la sala en cuanto el socket se va, y no guarda estado entre conexiones. No hay a qué reconectarse. |
+| Flechas ⟨ ⟩ para recorrer la partida | Es funcionalidad, no diseño: obliga a tener en pantalla una posición que no es la que se juega y a decidir qué pasa cuando llega una jugada a mitad del rebobinado. |
+| Apertura detectada | Necesita un libro de aperturas que la aplicación no lleva. |
+| Enlace `gambito.app/s/TOKEN` | La aplicación se sirve desde un servidor de desarrollo en una dirección de LAN y no tiene ninguna ruta que acepte un token. El enlace sería una promesa que no puede cumplir. |
+
+**Lo que la maqueta no podía dar**, porque cada mesa de trabajo suya es un
+ancho de escritorio fijo con un apodo verosímil dentro: el comportamiento en
+pantallas estrechas. Inicio se apila por debajo de 56rem, con el formulario
+primero —en un teléfono lo que hay que hacer manda sobre lo que hay que leer—.
+La partida se apila por debajo de 68rem en el orden tablero, chat, historial.
+El tablero mide los 68px por casilla de la maqueta cuando hay sitio y se encoge
+con su columna cuando no lo hay, con los marcadores de jugada legal expresados
+en porcentaje para que conserven la proporción.
+
+**Un error propio encontrado midiendo**, no mirando: a 413px de ancho la página
+se desplazaba en horizontal. La causa era que el panel del formulario de Inicio
+es una rejilla y su pista tomaba como mínimo los 400px fijos de la tarjeta, con
+lo que el `max-width: 100%` de la tarjeta se medía contra esa misma pista y no
+podía actuar nunca. Las pistas afectadas pasaron a `minmax(0, …)`.
+
+**Verificación.** 89 pruebas del servidor, `oxlint` y `vite build` en verde.
+Partida completa entre dos navegadores contra el servidor real: creación,
+unión, seis jugadas, chat en las dos direcciones, mate del pastor, diálogo de
+fin con «4 jugadas», peón capturado en la lista de capturas y ventaja `+1`.
+Error `ROOM_FULL` provocado de verdad con un tercer jugador. Sin desbordamiento
+horizontal a 413px ni a 803px.
+
 ---
 
 ## 10. Convenciones del repositorio
 
 - **Ramas:** Gitflow. `main` estable, `dev` de integración, `feature/*` para cada
   bloque. El bloque 1 se desarrolló en `feature/socket-server`; el bloque 2, en
-  `feature/react-client`; el bloque 3, en `feature/chat-and-polish`.
+  `feature/react-client`; el bloque 3, en `feature/chat-and-polish`. El rediseño
+  posterior sobre la maqueta Gambito va en `feature/gambito-design`, que sale de
+  `feature/chat-and-polish` y por tanto se integra después de ella.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`,
   `test:`), en inglés.
 - **Código:** en inglés, incluidos nombres y comentarios.

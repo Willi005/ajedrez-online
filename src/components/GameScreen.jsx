@@ -1,30 +1,53 @@
 import { useState } from 'react'
+import Avatar from './Avatar.jsx'
 import Board from './Board.jsx'
+import Chat from './Chat.jsx'
+import MoveHistory from './MoveHistory.jsx'
 import PromotionPicker from './PromotionPicker.jsx'
 import ResignButton from './ResignButton.jsx'
 
 /**
- * The playing view: the board, whose turn it is, and the click-to-move flow.
+ * The Partida artboard: a nav bar over three columns — the move list, the
+ * board, the chat.
  *
  * Turn ownership is enforced here as well as on the server. The server would
  * reject an out-of-turn move with NOT_YOUR_TURN, but waiting for that round trip
  * to find out would let the board move under the player's hands first.
+ *
+ * Three things the maquette puts in the nav are not here. Offering a draw and
+ * a rematch would both need a message the protocol does not have — section 4 of
+ * the bitácora lists every one of them — and the clocks in the seat rows would
+ * need a server that keeps time, which this one deliberately does not: it
+ * validates the network and the session and nothing else. The clock's slot is
+ * kept, and carries the one thing it was really there to say, which is who is
+ * on the move.
  */
 
-/** A player's name plus the colour they are playing. */
-function Seat({ nickname, color, isToMove, children }) {
+/** A player, their colour, and whether the board is waiting on them. */
+function Seat({ nickname, color, isToMove, isYou }) {
   return (
     <div className={`seat${isToMove ? ' seat--to-move' : ''}`}>
-      <span className={`seat__color seat__color--${color}`} aria-hidden="true" />
+      <Avatar nickname={nickname} color={color} />
       <span className="seat__name">{nickname}</span>
-      <span className="seat__role">{color === 'white' ? 'blancas' : 'negras'}</span>
-      {children}
+      <span className="tag tag-neutral">{color === 'white' ? 'blancas' : 'negras'}</span>
+      {isYou && <span className="tag tag-neutral seat__you">tú</span>}
+      <span className={`seat__turn${isToMove ? ' seat__turn--active' : ''}`}>
+        {isToMove ? 'Mueve' : '—'}
+      </span>
     </div>
   )
 }
 
-export default function GameScreen({ game, room, isGameActive, onMove, onResign }) {
-  const { state, getLegalTargets, getPromotionChoices, pieceAt } = game
+export default function GameScreen({
+  game,
+  room,
+  isGameActive,
+  statusText,
+  chat,
+  onMove,
+  onResign,
+}) {
+  const { state, getLegalTargets, getPromotionChoices, pieceAt, getPgn } = game
 
   const [selected, setSelected] = useState(null)
   const [pending, setPending] = useState(null) // A promotion awaiting a choice.
@@ -76,38 +99,48 @@ export default function GameScreen({ game, room, isGameActive, onMove, onResign 
     setSelected(piece && piece.color === myColor ? square : null)
   }
 
-  const turnLabel = !isGameActive
-    ? 'Partida detenida'
-    : isMyTurn
-      ? 'Tu turno'
-      : `Turno de ${room.opponent}`
-
   return (
-    <div className="game">
-      <Seat
-        nickname={room.opponent}
-        color={opponentColor}
-        isToMove={isGameActive && !isMyTurn}
-      />
-
-      <Board
-        board={state.board}
-        orientation={room.color}
-        selectedSquare={selected}
-        legalTargets={legalTargets}
-        lastMove={state.lastMove}
-        interactive={isMyTurn && !pending}
-        onSquareClick={handleSquareClick}
-      />
-
-      <Seat nickname={room.nickname} color={room.color} isToMove={isMyTurn}>
+    <div className="match">
+      <nav className="nav match__nav">
+        <span className="nav-brand">Gambito</span>
+        <span className="tag tag-neutral match__room tnum">Sala {room.token}</span>
+        <span className="match__status" role="status" aria-atomic="true">
+          {statusText}
+        </span>
         <ResignButton disabled={!isGameActive} onResign={onResign} />
-      </Seat>
+      </nav>
 
-      <p className="game__turn" role="status" aria-atomic="true">
-        {turnLabel}
-        {isGameActive && state.inCheck && <strong className="game__check"> ¡Jaque!</strong>}
-      </p>
+      <div className="match__body">
+        <MoveHistory history={state.history} board={state.board} getPgn={getPgn} />
+
+        <div className="match__board">
+          <Seat
+            nickname={room.opponent}
+            color={opponentColor}
+            isToMove={isGameActive && !isMyTurn}
+          />
+
+          <Board
+            board={state.board}
+            orientation={room.color}
+            selectedSquare={selected}
+            legalTargets={legalTargets}
+            lastMove={state.lastMove}
+            interactive={isMyTurn && !pending}
+            onSquareClick={handleSquareClick}
+          />
+
+          <Seat nickname={room.nickname} color={room.color} isToMove={isMyTurn} isYou />
+
+          {isGameActive && state.inCheck && (
+            <p className="match__check" role="status" aria-atomic="true">
+              ¡Jaque!
+            </p>
+          )}
+        </div>
+
+        <Chat {...chat} />
+      </div>
 
       {pending && (
         <PromotionPicker
@@ -117,10 +150,6 @@ export default function GameScreen({ game, room, isGameActive, onMove, onResign 
           onCancel={() => setPending(null)}
         />
       )}
-
-      <p className="game__token">
-        Token de la partida: <code>{room.token}</code>
-      </p>
     </div>
   )
 }

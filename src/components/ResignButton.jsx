@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import Icon from './Icon.jsx'
 
 /**
- * Resigning cannot be undone and the button sits next to the board, so it asks
- * twice. The confirmation is inline rather than a `confirm()` dialog, which
- * would block the socket's message handling while it is open.
+ * Resigning cannot be undone and the button sits in the nav bar over the board,
+ * so it asks twice. The confirmation is inline rather than a `confirm()`
+ * dialog, which would block the socket's message handling while it is open.
  */
 export default function ResignButton({ disabled, onResign }) {
   const [confirming, setConfirming] = useState(false)
@@ -12,30 +13,35 @@ export default function ResignButton({ disabled, onResign }) {
     return (
       <button
         type="button"
-        className="button--quiet"
+        className="btn btn-secondary match__resign"
         disabled={disabled}
         onClick={() => setConfirming(true)}
       >
-        Rendirse
+        <Icon name="flag" />
+        Abandonar
       </button>
     )
   }
 
   return (
-    <span className="resign-confirm" role="group" aria-label="Confirmar la rendición">
-      <span className="resign-confirm__question">¿Seguro?</span>
+    <span className="resign-confirm" role="group" aria-label="Confirmar el abandono">
+      <span className="resign-confirm__question text-muted">¿Seguro?</span>
       <button
         type="button"
-        className="button--danger"
+        className="btn btn-danger"
         disabled={disabled}
         onClick={() => {
           setConfirming(false)
           onResign()
         }}
       >
-        Sí, me rindo
+        Sí, abandono
       </button>
-      <button type="button" className="button--quiet" onClick={() => setConfirming(false)}>
+      <button
+        type="button"
+        className="btn btn-ghost"
+        onClick={() => setConfirming(false)}
+      >
         Cancelar
       </button>
     </span>

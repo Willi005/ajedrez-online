@@ -4,8 +4,11 @@ import { MAX_CHAT_LENGTH, isValidChatText, normalizeChatText } from '../lib/prot
 /** How close to the bottom still counts as "reading the latest", in pixels. */
 const STICKY_THRESHOLD_PX = 48
 
+/** The three the maquette puts under the composer. */
+const QUICK_PHRASES = ['¡Buena!', 'Suerte', 'Un momento']
+
 /**
- * The in-game chat.
+ * The right column of the Partida artboard.
  *
  * Purely presentational: the history is owned by App, which is also where the
  * `chat` messages arrive. Note that the server never echoes a message back to
@@ -38,17 +41,24 @@ export default function Chat({ messages, canSend, onSend }) {
     wasAtBottomRef.current = distance <= STICKY_THRESHOLD_PX
   }
 
+  function send(text) {
+    wasAtBottomRef.current = true
+    onSend(text)
+  }
+
   function handleSubmit(event) {
     event.preventDefault()
     if (!canSubmit) return
-    wasAtBottomRef.current = true
-    onSend(normalized)
+    send(normalized)
     setDraft('')
   }
 
   return (
-    <section className="chat" aria-label="Chat de la partida">
-      <h2 className="section__title">Chat</h2>
+    <section className="panel panel--chat" aria-label="Chat de la partida">
+      <div className="panel__head">
+        <h5 className="panel__title">Chat</h5>
+        <span className="panel__count text-muted">solo esta sala</span>
+      </div>
 
       <ol
         className="chat__log"
@@ -59,20 +69,24 @@ export default function Chat({ messages, canSend, onSend }) {
         aria-relevant="additions"
       >
         {messages.length === 0 && (
-          <li className="chat__empty">Todavía no hay mensajes.</li>
+          <li className="chat__note text-muted">Todavía no hay mensajes.</li>
         )}
-        {messages.map((message) => (
-          <li key={message.id} className={`chat__line chat__line--${message.kind}`}>
-            {message.kind === 'system' ? (
-              <span className="chat__system">{message.text}</span>
-            ) : (
-              <>
+
+        {messages.map((message) =>
+          message.kind === 'system' ? (
+            <li key={message.id} className="chat__note text-muted">
+              {message.text}
+              {message.time && ` · ${message.time}`}
+            </li>
+          ) : (
+            <li key={message.id} className={`chat__row chat__row--${message.kind}`}>
+              <div className="chat__bubble">
                 <span className="chat__author">{message.author}</span>
                 <span className="chat__text">{message.text}</span>
-              </>
-            )}
-          </li>
-        ))}
+              </div>
+            </li>
+          ),
+        )}
       </ol>
 
       <form className="chat__composer" onSubmit={handleSubmit}>
@@ -80,23 +94,38 @@ export default function Chat({ messages, canSend, onSend }) {
           Mensaje para tu rival
         </label>
         <input
+          className="input"
           id="chat-input"
           type="text"
           value={draft}
           maxLength={MAX_CHAT_LENGTH}
           autoComplete="off"
-          placeholder={canSend ? 'Escribe un mensaje…' : 'Chat no disponible'}
+          placeholder={canSend ? 'Escribe algo…' : 'Chat no disponible'}
           disabled={!canSend}
           onChange={(event) => setDraft(event.target.value)}
         />
-        <button type="submit" className="button--primary" disabled={!canSubmit}>
+        <button type="submit" className="btn btn-primary" disabled={!canSubmit}>
           Enviar
         </button>
       </form>
 
+      <div className="chat__quick">
+        {QUICK_PHRASES.map((phrase) => (
+          <button
+            key={phrase}
+            type="button"
+            className="btn btn-secondary chat__phrase"
+            disabled={!canSend}
+            onClick={() => send(phrase)}
+          >
+            {phrase}
+          </button>
+        ))}
+      </div>
+
       {/* Only worth showing once the limit is actually in sight. */}
       {remaining <= 40 && (
-        <p className="chat__counter" role="status" aria-atomic="true">
+        <p className="chat__counter text-muted tnum" role="status" aria-atomic="true">
           Quedan {remaining} caracteres.
         </p>
       )}
