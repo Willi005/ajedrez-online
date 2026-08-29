@@ -3,6 +3,13 @@
  *
  * Colours, spacing and radii all come from the tokens in index.css; nothing
  * here names a raw value that a theme would need to change.
+ *
+ * Two kinds of container, and the difference is deliberate. `.sheet` and
+ * `.section` are plain blocks separated by rules — they hold one thing the
+ * player reads at a time, and a box around them would be noise. A card with a
+ * border and a background is kept for the two places where something really
+ * does sit beside the board and has to be told apart from it: the chat and the
+ * end-of-game card.
  */
 
 .app {
@@ -18,17 +25,24 @@
 
 /* -- header ---------------------------------------------------------------- */
 
+/* A masthead. `.app` is a flex item that sizes to its content, so this rule
+   ends up exactly as wide as whatever is below it: the width of a form on the
+   lobby screens, the width of the board and chat during a game. */
 .brand {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
 }
 
 /* The knight from the board, re-tinted: the piece colours are meant for a
-   green square and would disappear against the page. */
+   green square and would disappear against the paper. */
 .brand__mark {
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 1.75rem;
+  height: 1.75rem;
   color: var(--primary);
   --piece-stroke: var(--primary);
   --piece-detail: var(--surface);
@@ -44,23 +58,46 @@
 
 /* The forms are read one at a time and should not stretch across the page;
    the board layout sets its own width. */
-.app__content > .panel,
+.app__content > .sheet,
 .app__content > .lobby {
   max-width: 27rem;
 }
 
-/* -- surfaces -------------------------------------------------------------- */
+/* -- blocks ---------------------------------------------------------------- */
 
-.panel {
+/* One block of content, no box. */
+.sheet {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-5);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
+}
+
+/* A block that follows another one, told apart by a rule instead of a border. */
+.section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border);
+}
+
+.section:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Names a control rather than heading something to be read, so it stays in the
+   sans and is set as a tracked label. */
+.section__title {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .row {
@@ -85,6 +122,7 @@
 
 .greeting strong {
   color: var(--foreground);
+  font-weight: 600;
 }
 
 /* A button that has to read as a link inside a sentence. */
@@ -111,7 +149,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .lobby form {
@@ -120,21 +158,29 @@
   gap: var(--space-2);
 }
 
-.token-input,
-.token-display {
+.token-input {
   font-family: var(--font-mono);
   font-weight: 600;
   letter-spacing: 0.25em;
   text-transform: uppercase;
 }
 
-/* The trailing letter-space would push the text off centre. */
+/* The token, set like a plate in a printed book: the serif, wide tracking, and
+   a double rule above and below. The characters are not separated by any real
+   punctuation, so selecting the token still copies exactly the five characters
+   the other player has to type. */
 .token-display {
-  padding: var(--space-4) 0 var(--space-4) 0.25em;
-  border-radius: var(--radius-md);
-  background: var(--surface-sunken);
-  font-size: 2rem;
+  margin: var(--space-2) 0;
+  padding: var(--space-4) 0 var(--space-4) 0.3em;
+  border-top: 3px double var(--border-strong);
+  border-bottom: 3px double var(--border-strong);
+  font-family: var(--font-serif);
+  font-size: 2.75rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  line-height: 1.1;
   text-align: center;
+  text-transform: uppercase;
 }
 
 /* -- game layout ----------------------------------------------------------- */
@@ -229,6 +275,8 @@
 
 .seat__name {
   min-width: 0;
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -296,7 +344,7 @@
   padding: var(--space-2);
 }
 
-/* Away from the board, a white piece on a white card would vanish, so each
+/* Away from the board, a white piece on pale paper would vanish, so each
    option carries a square of board with it. */
 .promotion__option .piece {
   width: 2.6rem;
@@ -344,7 +392,7 @@
 }
 
 .game-over__headline {
-  font-size: 1.0625rem;
+  font-size: 1.25rem;
 }
 
 .game-over__headline:focus-visible {
@@ -368,17 +416,9 @@
   gap: var(--space-3);
   padding: var(--space-4);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: var(--surface);
   box-shadow: var(--shadow-card);
-}
-
-.chat__title {
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .chat__log {
@@ -465,7 +505,7 @@
 
 .banner {
   width: 100%;
-  max-width: 34rem;
+  max-width: 27rem;
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
@@ -482,6 +522,8 @@
 }
 
 .banner__title {
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
   font-weight: 600;
 }
 
@@ -511,12 +553,9 @@
 
 .server-settings {
   width: 100%;
-  max-width: 34rem;
   margin-top: auto;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
   font-size: 0.875rem;
 }
 
@@ -534,6 +573,7 @@
 }
 
 .server-settings form {
+  max-width: 27rem;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);

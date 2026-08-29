@@ -48,7 +48,7 @@ export default function Chat({ messages, canSend, onSend }) {
 
   return (
     <section className="chat" aria-label="Chat de la partida">
-      <h2 className="chat__title">Chat</h2>
+      <h2 className="section__title">Chat</h2>
 
       <ol
         className="chat__log"

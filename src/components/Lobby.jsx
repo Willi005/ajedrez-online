@@ -25,8 +25,8 @@ export default function Lobby({ nickname, canAct, onCreate, onJoin, onChangeNick
         </button>
       </p>
 
-      <section className="panel">
-        <h2>Crear una partida</h2>
+      <section className="section">
+        <h2 className="section__title">Crear una partida</h2>
         <p className="hint">
           Obtendrás un token de {TOKEN_LENGTH} caracteres para pasarle a tu rival.
           Juegas con blancas.
@@ -36,8 +36,8 @@ export default function Lobby({ nickname, canAct, onCreate, onJoin, onChangeNick
         </button>
       </section>
 
-      <section className="panel">
-        <h2>Unirse a una partida</h2>
+      <section className="section">
+        <h2 className="section__title">Unirse a una partida</h2>
         <form onSubmit={handleJoin}>
           <label htmlFor="token">Token de la partida</label>
           <input

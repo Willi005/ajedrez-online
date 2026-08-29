@@ -18,7 +18,7 @@ export default function WaitingRoom({ token, onCancel }) {
   }
 
   return (
-    <section className="panel">
+    <section className="sheet">
       <h2>Esperando a tu rival</h2>
       <p className="hint">Pásale este token para que se una:</p>
       <p className="token-display">{token}</p>

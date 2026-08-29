@@ -17,7 +17,7 @@ export default function NicknameForm({ initialValue = '', onSubmit }) {
   }
 
   return (
-    <form className="panel" onSubmit={handleSubmit}>
+    <form className="sheet" onSubmit={handleSubmit}>
       <h2>¿Cómo te llamas?</h2>
       <p className="hint">
         Tu apodo se guarda en este navegador. Podrás cambiarlo más adelante.
