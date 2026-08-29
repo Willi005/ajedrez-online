@@ -147,7 +147,7 @@ python3 -m unittest discover -s server/tests -t .
 |---|---|---|
 | 1. Server | TCP sockets, hand-written WebSocket, token rooms, validation, console client | Done |
 | 2. React client | Connection, nickname, lobby, board with `chess.js`, move sync | Done |
-| 3. Chat and polish | Chat, game-over screen, error UI, minimal styling | Pending |
+| 3. Chat and polish | Chat, resign, game-over screen, error UI, minimal styling | Done |
 
 ## Documentation
 
