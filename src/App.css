@@ -495,15 +495,17 @@
 
 /* -- avatars --------------------------------------------------------------- */
 
-/* `place-items: center` centres the line box, and a line box is not the letter:
-   it reaches down to a descender that a capital never uses, so the glyph ends
-   up above the middle of the disc. `line-height: 1` takes out the slack and the
-   padding pushes the letter back down by the rest.
+/* `place-items: center` centres the line box, and what went wrong before was
+   that the line box was the inherited 1.55 — all that leading above and below
+   the capital, centred as a block, left the letter riding high in the disc.
+   `line-height: 1` is the whole fix, and it needs no nudge after it: measured
+   off painted pixels, every capital in Cormorant then lands within 0.05px of
+   the centre of a 30px disc. An earlier attempt added a padding on top of this
+   and pushed them all half a pixel low.
 
-   The figure is measured, not guessed: in Cormorant every capital has the same
-   cap height and no descent, so its ink centre sits exactly 0.0357em above the
-   line box's, and padding moves centred content by half of what it adds — hence
-   twice that. One number covers every initial. */
+   Lining figures because an initial can be a digit — Cormorant's default
+   figures are old-style, which sit at x-height and would drop out of the
+   middle. Faces without the feature are unaffected. */
 .avatar {
   display: grid;
   place-items: center;
@@ -511,13 +513,13 @@
   border-radius: 50%;
   font-family: var(--font-heading);
   font-weight: var(--font-heading-weight);
+  font-variant-numeric: lining-nums;
   line-height: 1;
 }
 
 .avatar--md {
   width: 30px;
   height: 30px;
-  padding-top: 0.071em;
   font-size: 14px;
 }
 

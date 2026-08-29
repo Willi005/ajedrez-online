@@ -14,14 +14,15 @@ from server.protocol import TOKEN_ALPHABET, TOKEN_LENGTH
 # Give up rather than spin forever if the token space is somehow exhausted.
 MAX_TOKEN_ATTEMPTS = 100
 
-# The one time control the app offers: ten minutes each, no increment.
+# The one time control the app offers: five minutes each, no increment, so a
+# whole game fits in ten.
 #
 # The clock lives here rather than in the browser because it is the one part of
 # a game a player must not be able to decide for themselves. The rules can stay
 # in the client — a client that lies about them only breaks its own board, since
 # the opponent validates the same position — but a client that lies about the
 # clock steals time from someone else.
-INITIAL_TIME_SECONDS = 600.0
+INITIAL_TIME_SECONDS = 300.0
 
 
 class RoomError(Exception):

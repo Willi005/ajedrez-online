@@ -3,7 +3,7 @@
  * server/rooms.py. The server is the authority; this copy is only here so the
  * interface can name the mode before a game has started.
  */
-export const INITIAL_TIME_SECONDS = 600
+export const INITIAL_TIME_SECONDS = 300
 
 /** Below this the clock changes colour. Half a minute is when it starts to hurt. */
 export const LOW_TIME_SECONDS = 30

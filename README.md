@@ -2,7 +2,7 @@
 
 Two-player online chess over a raw TCP socket, with an in-game chat. Games are
 paired with a short token — no accounts, no database, nothing persisted. One
-time control: 10 minutes a side, kept by the server.
+time control: 5 minutes a side — 10 for the whole game — kept by the server.
 
 ## Tech Stack
 

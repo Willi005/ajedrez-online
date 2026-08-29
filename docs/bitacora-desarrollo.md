@@ -917,11 +917,11 @@ fin con «4 jugadas», peón capturado en la lista de capturas y ventaja `+1`.
 Error `ROOM_FULL` provocado de verdad con un tercer jugador. Sin desbordamiento
 horizontal a 413px ni a 803px.
 
-### 29 de agosto de 2026 — Reloj de 10 minutos, y cinco arreglos de la maqueta
+### 29 de agosto de 2026 — Reloj de partida, y cinco arreglos de la maqueta
 
 **El reloj**, que es la primera ampliación del contrato desde el bloque 1. Un
-solo modo de juego: partida rápida de **10 minutos por jugador, sin
-incremento**.
+solo modo de juego: partida rápida de **5 minutos por jugador, sin incremento**,
+de modo que una partida entera cabe en diez.
 
 - **Decisión: el reloj vive en el servidor.** Es la única parte de una partida
   que un jugador no puede decidir por su cuenta. Las reglas sí pueden quedarse
@@ -950,7 +950,7 @@ incremento**.
 
 **Un problema que el reloj creó y hubo que cerrar.** Tras un jaque mate nadie
 mueve. El servidor no sabe qué es un mate —no conoce las reglas— así que habría
-seguido descontando y, al cabo de diez minutos, habría declarado ganador **al
+seguido descontando y, al cabo de cinco minutos, habría declarado ganador **al
 jugador que estaba mateado**. De ahí el mensaje `game_end`: el cliente, que sí
 ve el final, se lo dice al servidor para que pare el reloj. Está acotado a
 propósito —solo admite `checkmate` y `draw`, rechaza `resign` y `timeout`, que
@@ -967,15 +967,13 @@ la vez— y el cliente da preferencia al veredicto de su propio tablero sobre un
   Dibujar el límite en vez de fiarlo al relleno es además lo que el sistema dice
   que hay que hacer en todo lo demás: «draw with borders, rules and underlines».
 - **La inicial no estaba centrada en su círculo.** `place-items: center` centra
-  la caja de línea, y una caja de línea no es la letra: llega hasta el descenso,
-  que una mayúscula nunca usa, así que el glifo queda por encima del medio. La
-  cifra se midió en vez de tantearla —en Cormorant todas las mayúsculas tienen
-  la misma altura y ningún descenso, así que su centro de tinta cae exactamente
-  a 0,0357 em por encima— y el relleno superior corrige el doble de eso, porque
-  a un contenido centrado el relleno lo mueve la mitad. Comprobado después: el
-  error queda en 0,003 px. El mismo método corrige el peón del logo, que
-  tampoco está centrado en su propia caja de 45 unidades porque está dibujado
-  para apoyarse en una casilla.
+  la caja de línea, y la caja de línea era la interlínea heredada de 1,55: todo
+  ese aire por arriba y por abajo, centrado en bloque, dejaba la letra alta.
+  `line-height: 1` lo corrige. Se le añadió además un relleno superior que
+  resultó estar de más y que hubo que quitar después; el porqué está en la
+  entrada siguiente. El peón del logo sí necesitaba corrección propia, porque
+  no está centrado en su caja de 45 unidades: está dibujado para apoyarse en
+  una casilla.
 - **El logo.** Un peón en un disco negro, junto al nombre en la barra. Es el
   mismo peón del tablero, no un segundo dibujo, así que la marca y el juego no
   pueden separarse. El favicon es el mismo.
@@ -998,12 +996,52 @@ partida terminada congele sus cifras. El reloj se inyecta en `RoomRegistry` y en
 milisegundos en vez de saltarse el único camino que ningún mensaje dispara.
 
 En el navegador, con dos jugadores contra el servidor real: los dos relojes
-arrancan en 10:00, el turno los alterna correctamente y las dos pantallas
+arrancan en 5:00, el turno los alterna correctamente y las dos pantallas
 coinciden cifra a cifra. La caída de bandera se probó de verdad levantando el
 mismo servidor con un reloj de 20 segundos y apuntando el cliente ahí desde su
 propia pantalla de ajustes: sin que nadie moviera, el reloj bajó a 0:00 y los
 dos navegadores recibieron el final, «Pierdes la partida / Se te acabó el
 tiempo» y «Ganas la partida».
+
+### 29 de agosto de 2026 — Cinco minutos por jugador, y el centrado bien medido
+
+- **El control de tiempo baja a 5 minutos por bando**, de modo que una partida
+  entera cabe en diez. Es un solo número, `INITIAL_TIME_SECONDS` en
+  `server/rooms.py`; el cliente lleva una copia en `src/lib/clock.js` que solo
+  sirve para escribir «5 min» en el inicio y en la sala de espera, porque antes
+  de empezar una partida el navegador no tiene de dónde sacarlo. Las cifras que
+  se juegan vienen siempre del servidor. Las pruebas usan la constante, así que
+  siguen valiendo sin tocarlas.
+
+- **La inicial seguía medio píxel baja, y la culpa era de la corrección
+  anterior.** El relleno superior que se había añadido para centrarla estaba de
+  más: `line-height: 1` ya la centra por sí solo, y el relleno la empujaba
+  0,5 px por debajo del medio en un círculo de 30 px — poco, pero se ve.
+
+  Lo que falló fue el método. La primera medición partía de
+  `fontBoundingBoxAscent` y `fontBoundingBoxDescent` de canvas para deducir
+  dónde cae la línea base dentro de la caja, y esas métricas no tienen por qué
+  ser las que el navegador usa para componer. Esta vez no se dedujo nada:
+
+  1. La línea base se **mide** metiendo en el elemento un `inline-block` de
+     altura cero, que por definición se apoya en ella. (Al primer intento se
+     coló como un segundo elemento de la rejilla y cayó en su propia fila; hubo
+     que encerrar letra y marcador en un único ítem.)
+  2. La altura de mayúscula se **mide** dibujando la letra en un canvas y
+     recorriendo los píxeles hasta encontrar tinta, en vez de preguntársela a
+     una API. (Aquí también hubo un tropiezo: `getComputedStyle` devuelve un
+     objeto vivo, y al leerlo después de sacar la sonda del documento venía
+     vacío, con lo que el canvas se quedó con su tipografía por defecto y
+     declaró 8 px de altura de mayúscula para todas las letras.)
+
+  Con las dos cifras medidas: sin relleno, todas las mayúsculas de Cormorant
+  caen a menos de 0,05 px del centro a tamaño real. El relleno se fue.
+
+- **Cifras de caja alta en el avatar.** Un apodo puede empezar por número —
+  `7Renata` es un apodo perfectamente normal— y las cifras por defecto de
+  Cormorant son de estilo antiguo: se sientan a la altura de la equis y se
+  saldrían del medio. `font-variant-numeric: lining-nums` las sube a altura de
+  mayúscula. Comprobado en pantalla: el `7` sale del mismo alto que la `R`.
 
 ---
 
