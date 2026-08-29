@@ -20,6 +20,7 @@ export const SERVER_MESSAGE = {
   START: 'start',
   MOVE: 'move',
   CHAT: 'chat',
+  CLOCK: 'clock',
   GAME_OVER: 'game_over',
   OPPONENT_LEFT: 'opponent_left',
   ERROR: 'error',
@@ -92,4 +93,18 @@ export function chatMessage(text) {
 
 export function resignMessage() {
   return { type: 'resign' }
+}
+
+/**
+ * Reports to the server that the position itself ended the game.
+ *
+ * Checkmate and stalemate are the two endings the server cannot see: the rules
+ * live here by design 2.3, and it only validates the network and the session.
+ * Before there was a clock that did not matter — the game simply stopped. With
+ * one running it does: left uninformed the server would keep charging a game
+ * that was already over and eventually award it on time to the player who was
+ * mated.
+ */
+export function gameEndMessage(reason, winner) {
+  return { type: 'game_end', reason, winner: winner ?? null }
 }

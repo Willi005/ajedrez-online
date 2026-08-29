@@ -15,7 +15,11 @@ function describeSquare(square, piece) {
 }
 
 /**
- * The 8x8 board, drawn as a CSS Grid.
+ * The 8x8 board, drawn as a CSS Grid inside a coordinate frame.
+ *
+ * The maquette sets the ranks and files outside the board rather than in the
+ * corners of the squares, so the squares hold nothing but the position and the
+ * board keeps a clean edge. That is what the frame grid around it is for.
  *
  * Purely presentational: it renders the position it is handed and reports
  * clicks by square name. Which squares may be clicked is decided upstream,
@@ -35,46 +39,58 @@ export default function Board({
   const targets = new Set(legalTargets)
 
   return (
-    <div className="board" role="grid" aria-label="Tablero de ajedrez">
-      {ranks.map((rank) => (
-        <div className="board__row" role="row" key={rank}>
-          {files.map((file) => {
-            const square = `${file}${rank}`
-            // board() is always indexed from rank 8 down and file a across,
-            // whichever way the board is drawn.
-            const piece = board[8 - rank][FILES.indexOf(file)]
-            const classes = [
-              'square',
-              isLightSquare(file, rank) ? 'square--light' : 'square--dark',
-            ]
-            if (square === selectedSquare) classes.push('square--selected')
-            if (targets.has(square)) {
-              classes.push(piece ? 'square--capture' : 'square--target')
-            }
-            if (lastMove && (square === lastMove.from || square === lastMove.to)) {
-              classes.push('square--last')
-            }
+    <div className="board-frame">
+      <div className="board-frame__ranks" aria-hidden="true">
+        {ranks.map((rank) => (
+          <span key={rank}>{rank}</span>
+        ))}
+      </div>
 
-            return (
-              <button
-                type="button"
-                role="gridcell"
-                key={square}
-                className={classes.join(' ')}
-                disabled={!interactive}
-                aria-label={describeSquare(square, piece)}
-                onClick={() => onSquareClick?.(square)}
-              >
-                {piece && <Piece type={piece.type} color={piece.color} />}
-                {file === files[0] && <span className="square__rank">{rank}</span>}
-                {rank === ranks[ranks.length - 1] && (
-                  <span className="square__file">{file}</span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-      ))}
+      <div className="board" role="grid" aria-label="Tablero de ajedrez">
+        {ranks.map((rank) => (
+          <div className="board__row" role="row" key={rank}>
+            {files.map((file) => {
+              const square = `${file}${rank}`
+              // board() is always indexed from rank 8 down and file a across,
+              // whichever way the board is drawn.
+              const piece = board[8 - rank][FILES.indexOf(file)]
+              const classes = [
+                'square',
+                isLightSquare(file, rank) ? 'square--light' : 'square--dark',
+              ]
+              if (lastMove && (square === lastMove.from || square === lastMove.to)) {
+                classes.push('square--last')
+              }
+              if (square === selectedSquare) classes.push('square--selected')
+              if (targets.has(square)) {
+                classes.push(piece ? 'square--capture' : 'square--target')
+              }
+
+              return (
+                <button
+                  type="button"
+                  role="gridcell"
+                  key={square}
+                  className={classes.join(' ')}
+                  disabled={!interactive}
+                  aria-label={describeSquare(square, piece)}
+                  onClick={() => onSquareClick?.(square)}
+                >
+                  {piece && <Piece type={piece.type} color={piece.color} />}
+                </button>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+
+      <div />
+
+      <div className="board-frame__files" aria-hidden="true">
+        {files.map((file) => (
+          <span key={file}>{file}</span>
+        ))}
+      </div>
     </div>
   )
 }

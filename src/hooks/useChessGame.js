@@ -21,6 +21,9 @@ function snapshot(game, lastMove) {
     isCheckmate: game.isCheckmate(),
     isDraw: game.isDraw(),
     lastMove,
+    // English SAN, one entry per ply. The move list on screen is in Spanish,
+    // but that is a rendering concern and is translated where it is drawn.
+    history: game.history(),
   }
 }
 
@@ -58,6 +61,14 @@ export function useChessGame() {
   )
 
   const pieceAt = useCallback((square) => game.get(square) || null, [game])
+
+  /**
+   * The game in PGN, for the clipboard.
+   *
+   * Read through a callback rather than carried in the snapshot: it is a string
+   * nothing on screen renders, wanted only at the moment somebody asks for it.
+   */
+  const getPgn = useCallback(() => game.pgn(), [game])
 
   /**
    * Play the local player's move. Returns the payload to put on the wire, or
@@ -135,6 +146,7 @@ export function useChessGame() {
     getLegalTargets,
     getPromotionChoices,
     pieceAt,
+    getPgn,
     makeMove,
     undoLastMove,
     applyOpponentMove,

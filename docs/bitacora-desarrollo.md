@@ -159,8 +159,8 @@ y `server.py` → `websocket.py`. No hay ciclos.
 | `src/hooks/useChessGame.js` | Una instancia de `chess.js` y una foto inmutable de la posición para React. |
 | `src/components/Board.jsx` | Tablero en CSS Grid, volteado para las negras. Solo presentación. |
 | `src/components/Piece.jsx` | Las seis piezas dibujadas en SVG. |
-| `src/components/NicknameForm.jsx` | Primera vista: pide el apodo. |
-| `src/components/Lobby.jsx` | Crear partida o unirse con un token. |
+| `src/components/NicknameForm.jsx` | Primera vista: pide el apodo. *(Fundido en `Home.jsx` en el rediseño; ver más abajo.)* |
+| `src/components/Lobby.jsx` | Crear partida o unirse con un token. *(Ídem.)* |
 | `src/components/WaitingRoom.jsx` | Muestra el token mientras no llega el rival. |
 | `src/components/GameScreen.jsx` | La partida: turno, selección de casillas, promoción. |
 | `src/components/PromotionPicker.jsx` | Pregunta la pieza antes de enviar la jugada. |
@@ -186,6 +186,41 @@ El bloque no añadió ni una llamada de socket: se apoya entero en el contrato d
 la sección 4, que ya tenía `chat`, `resign` y `game_over`. Tampoco tocó ningún
 archivo del servidor.
 
+### Archivos de la maqueta Gambito
+
+La interfaz se rehízo sobre un diseño externo (ver la entrada del 29 de agosto
+en la sección 9). Estos son los archivos que cambiaron de forma o aparecieron:
+
+| Archivo | Responsabilidad |
+|---|---|
+| `src/index.css` | Los tokens del sistema Classical y los valores por defecto de los elementos. |
+| `src/design-system.css` | La capa de componentes del sistema: `.btn`, `.card`, `.tag`, `.nav`, `.table`, `.dialog`, `.input`, `.seg`, `.hr`. |
+| `src/App.css` | Las pantallas de la maqueta montadas sobre esa capa. |
+| `src/components/Home.jsx` | La vista de inicio: apodo, crear o unirse. Sustituye a `NicknameForm.jsx` y `Lobby.jsx`. |
+| `src/components/MoveHistory.jsx` | La columna izquierda de la partida: lista de jugadas, PGN y piezas capturadas. |
+| `src/components/Avatar.jsx` | La inicial del jugador en un círculo del color que juega. |
+| `src/components/CopyButton.jsx` | Copiar al portapapeles y decirlo por un momento. Lo usan el token y el PGN. |
+| `src/components/Icon.jsx` | Los cuatro iconos de Lucide que la interfaz necesita, en línea. |
+| `src/components/Logo.jsx` | La marca: el mismo peón del tablero, en un disco negro. |
+| `src/components/Clock.jsx` | El tiempo de un jugador. Se refresca a sí mismo. |
+| `src/hooks/useClock.js` | Descuenta localmente entre las lecturas del servidor. |
+| `src/lib/clock.js` | Formato del reloj y el umbral de tiempo bajo. |
+
+Se eliminaron `src/components/NicknameForm.jsx` y `src/components/Lobby.jsx`:
+la maqueta pide el apodo y la elección de crear o unirse en una sola tarjeta, y
+las dos vistas se fundieron en `Home.jsx`. El apodo se sigue recordando entre
+visitas.
+
+Dos funciones nuevas en `src/lib/pieces.js` sostienen la columna izquierda, y
+ninguna de las dos habla con el servidor:
+
+- `capturedMaterial(board)` cuenta las piezas que faltan **en la posición**, no
+  en la lista de jugadas: una resincronización carga un FEN y deja a `chess.js`
+  sin historial, mientras que el tablero siempre es correcto.
+- `toSpanishSan(san)` pasa `Nf3` a `Cf3` para la pantalla. El PGN que va al
+  portapapeles se queda en inglés, que es el estándar: un PGN en español no
+  abriría en ningún otro programa.
+
 ---
 
 ## 4. Contrato del protocolo
@@ -195,10 +230,10 @@ valida en `server/protocol.py`; el cliente lo construye en `src/lib/protocol.js`
 Transporte: tramas de texto WebSocket, cada una con un objeto JSON. Codificación
 UTF-8. Máximo 4096 bytes por trama.
 
-El bloque 2 dejó implementados `create`, `join` y `move`, y el manejo de
-`created`, `start`, `move`, `game_over`, `opponent_left` y `error`. Quedan sin
-usar `chat` y `resign`, que son del bloque 3; sus constructores ya existen en
-`src/lib/protocol.js`.
+El bloque 2 dejó implementados `create`, `join` y `move`; el bloque 3 añadió
+`chat` y `resign`. El reloj añadió los dos últimos, `game_end` y `clock`, que
+son la única ampliación del contrato posterior al bloque 1 — el porqué está en
+la entrada del reloj en la sección 9.
 
 ### 4.1. Cliente → servidor
 
@@ -209,6 +244,7 @@ usar `chat` y `resign`, que son del bloque 3; sus constructores ya existen en
 | `move` | `from`, `to`, `fen`, `promotion` (opcional) | `promotion` es `null` o una de `q`, `r`, `b`, `n`. |
 | `chat` | `text` | 1 a 200 caracteres tras limpiar caracteres de control. |
 | `resign` | — | Sin campos adicionales. |
+| `game_end` | `reason`, `winner` | El tablero terminó solo. `reason` es `"checkmate"` o `"draw"`; con `"draw"`, `winner` debe ser `null`. Detiene el reloj en el servidor. |
 
 ```json
 {"type": "create", "nickname": "ana"}
@@ -216,7 +252,15 @@ usar `chat` y `resign`, que son del bloque 3; sus constructores ya existen en
 {"type": "move",   "from": "e2", "to": "e4", "promotion": null, "fen": "rnbq..."}
 {"type": "chat",   "text": "buena jugada"}
 {"type": "resign"}
+{"type": "game_end", "reason": "checkmate", "winner": "white"}
 ```
+
+`game_end` es el único mensaje en el que el servidor acepta la palabra del
+cliente sobre la partida, y lo hace acotado: solo admite los dos finales que
+únicamente el cliente puede ver, rechaza `"resign"` y `"timeout"` —que son
+suyos— e ignora el mensaje si la sala ya terminó, porque los dos jugadores lo
+envían a la vez. Es el mismo trato que la decisión 2.3 ya había hecho: las
+reglas viven en el navegador.
 
 ### 4.2. Servidor → cliente
 
@@ -226,7 +270,8 @@ usar `chat` y `resign`, que son del bloque 3; sus constructores ya existen en
 | `start` | `token`, `color`, `nickname`, `opponent` | A **ambos** jugadores cuando el segundo se une. |
 | `move` | `from`, `to`, `promotion`, `fen` | Retransmisión al rival. Idéntico al que envió el otro. |
 | `chat` | `from`, `text` | `from` es el apodo del emisor. |
-| `game_over` | `reason`, `winner` | `reason` es `"resign"`. `winner` es `"white"` o `"black"`. |
+| `clock` | `white`, `black`, `turn`, `running` | Los dos relojes en segundos, quién los consume y si corren. Se envía al empezar, tras cada jugada y al terminar. |
+| `game_over` | `reason`, `winner` | `reason` es `"resign"`, `"timeout"`, `"checkmate"` o `"draw"`. `winner` es `"white"`, `"black"` o `null` en tablas. |
 | `opponent_left` | — | El rival cerró la conexión o se cayó. |
 | `error` | `code`, `message` | Ante cualquier rechazo. `message` está en español. |
 
@@ -235,7 +280,8 @@ usar `chat` y `resign`, que son del bloque 3; sus constructores ya existen en
 {"type": "start",         "token": "7QK2P", "color": "black", "nickname": "beto", "opponent": "ana"}
 {"type": "move",          "from": "e2", "to": "e4", "promotion": null, "fen": "rnbq..."}
 {"type": "chat",          "from": "ana", "text": "buena jugada"}
-{"type": "game_over",     "reason": "resign", "winner": "black"}
+{"type": "clock",         "white": 597.4, "black": 600.0, "turn": "black", "running": true}
+{"type": "game_over",     "reason": "timeout", "winner": "black"}
 {"type": "opponent_left"}
 {"type": "error",         "code": "NOT_YOUR_TURN", "message": "No es tu turno."}
 ```
@@ -263,6 +309,8 @@ causa, sin tener que interpretar el texto.
 | `NOT_IN_ROOM` | La conexión intentó jugar o chatear sin estar en una sala. |
 | `GAME_NOT_STARTED` | Se intentó mover antes de que llegara el rival. |
 | `NOT_YOUR_TURN` | Un jugador intentó mover en el turno del otro. |
+| `INVALID_REASON` | `game_end` con un motivo que el cliente no puede decidir (`resign`, `timeout`). |
+| `INVALID_WINNER` | `game_end` con unas tablas que declaran ganador, o un mate sin él. |
 | `NO_OPPONENT` | Se intentó chatear antes de que llegara el rival. |
 
 Los quince primeros los levanta `server/protocol.py` al validar el mensaje;
@@ -753,13 +801,258 @@ anterior: la paleta slate/azul se reemplazó por Flexoki Light.
 - Se quitó la banda de la corona del rey: era un trazo horizontal de lado a lado
   y se leía como un tachón. La cruz ya identifica la pieza.
 
+### 29 de agosto de 2026 — Rediseño sobre la maqueta Gambito
+
+**Los valores de color vigentes son los de esta entrada.** La paleta Flexoki
+Light de la entrada anterior queda sustituida por el sistema Classical, que
+llega con el diseño importado.
+
+Se importó un diseño externo hecho en Claude Design: el proyecto **Gambito**
+(`2bf8ef68-e506-4962-a19e-ff5d6c3cc262`), que trae una maqueta de todas las
+pantallas (`Gambito.dc.html`) y un sistema de diseño propio, **Classical**
+(`_ds/classical-…/styles.css` y su `readme.md`). La aplicación pasa a llamarse
+Gambito.
+
+- **Qué es Classical.** Un sistema editorial sobre un fondo casi blanco
+  `#F3F2F2`: Cormorant Garamond para los títulos sobre Lora para el texto,
+  filetes de un píxel, y el color aplicado como trazo y no como relleno. Un solo
+  acento, un dorado `#B68235`, con rampas de 100 a 900 generadas en OKLCH sobre
+  una misma escala de luminosidad. Los botones son contorno, nunca relleno; las
+  tarjetas van bordeadas y sin fondo.
+- **Las dos fuentes se instalaron, no se enlazaron.** El sistema las carga desde
+  el CDN de Google Fonts. Esta aplicación se muestra en una LAN sin salida a
+  internet —que es el objeto entero del ejercicio— y ese enlace fallaría justo
+  durante la demostración. Van como paquetes npm (`@fontsource/…`), solo el
+  subconjunto latino y solo los pesos 400 y 600: cuatro archivos que Vite mete
+  en el build. Mismas tipografías, ninguna petición de red.
+
+**Tres cosas del sistema importado hubo que corregirlas, y las tres son de
+contraste sobre texto pequeño:**
+
+- **`.text-muted` se mezcla al 65%, no al 55%.** Al 55% mide **3.6:1** sobre la
+  página, y todo lo que aquí lleva esa clase —pistas, pies, el contador de
+  jugadas, las coordenadas del tablero— es texto pequeño, que necesita 4.5:1.
+  65% es el primer paso que lo consigue sobre los cuatro fondos de la
+  aplicación: página 4.6:1, superficie 4.6:1, casilla clara 4.6:1, casilla
+  oscura 4.5:1.
+- **El acento en texto pasa a `accent-700`.** Esto no es una desviación: el
+  propio `readme.md` de Classical dice que el par acento/fondo está ajustado a
+  3:1, «suficiente para iconos, texto grande y cromo de interfaz», y que para
+  texto de tamaño de párrafo se use un paso profundo de la rampa. El
+  `.card-kicker` de 10px, la etiqueta de autor del chat y las etiquetas de los
+  botones son texto pequeño: van en `accent-700` (6.0:1 en vez de 3.0:1). El
+  borde de los botones sí se queda en el acento, que es cromo.
+- **Se añadió una rampa de peligro**, porque Classical es monocromo dorado y no
+  trae ningún color para algo que ha salido mal —y esta aplicación tiene un
+  servidor que puede rechazar una jugada, un token que se puede escribir mal y
+  un socket que se puede caer. Los cuatro pasos se generaron como dice el
+  readme que se generaron los demás: la misma luminosidad OKLCH que
+  `accent-100/300/700/800`, en un rojo cálido, tomando el mayor croma que se
+  queda dentro de sRGB. Resultado: `#FFF0EE`, `#FFC2B9`, `#A0322C`, `#73221E`.
+  Todos los pares de texto pasan de 4.5:1 (`danger-700` sobre la página, 6.3:1).
+
+**Un cambio tipográfico, y es el único sitio donde no se pudo respetar la
+maqueta:**
+
+- **La lista de jugadas va en Lora, no en Cormorant.** La maqueta la pone en la
+  tipografía de títulos a 15px, y a ese tamaño la `e` minúscula de Cormorant
+  pierde el travesaño y se lee como una `c`. En notación algebraica eso no es
+  una letra más bonita: `e4` y `c4` son casillas distintas. Comprobado al lado
+  con Lora al mismo tamaño, donde el travesaño es inequívoco. Todo lo demás que
+  la maqueta pone en Cormorant es una palabra, una mayúscula o una cifra, donde
+  el contexto desambigua, y ahí la tipografía se queda.
+
+**Qué de la maqueta se implementó y qué no.** El proyecto de diseño se
+sincronizó con el repositorio cuando `main` era todavía el andamio de Vite (así
+lo dice su `github.md`), de modo que la maqueta dibuja funciones que el
+protocolo de la sección 4 no tiene. Lo que se pudo cumplir con honestidad, se
+cumplió; lo que habría exigido mentir, no.
+
+Implementado, y todo con datos reales:
+
+| De la maqueta | Cómo se cumple |
+|---|---|
+| Pantalla Inicio partida en dos | Tal cual, incluidos el titular de 76px, los pasos I/II/III y el control segmentado. |
+| Pantalla Unirse | Dentro de la tarjeta de Inicio, con el campo de token del tamaño y el interletrado que ella le da. Es el control segmentado quien decide, y añadir un paso de navegación que el protocolo no necesita habría sido peor. |
+| Pantalla Crear sala | Tal cual, menos el enlace para compartir. |
+| Historial de jugadas | Real, desde `chess.js`, en notación española. |
+| Copiar PGN | Real, en inglés. |
+| Piezas capturadas y ventaja material | Reales, contadas desde la posición. |
+| Barra de navegación de la partida | Tal cual, con «Abandonar» que sí existe. |
+| Chat con burbujas y frases rápidas | Tal cual. Las tres frases envían un `chat` normal. |
+| Diálogo de fin de partida | Tal cual, con «Seguir aquí» en el lugar de la revancha. |
+| Franja de aviso a todo el ancho | Reutilizada para los errores del servidor, en la rampa de peligro. |
+
+No implementado, y por qué:
+
+| De la maqueta | Por qué no |
+|---|---|
+| Relojes 5+3 | El servidor no lleva tiempo y el protocolo no lo transporta. Su hueco en el asiento se conserva y dice lo que el reloj estaba ahí para decir: a quién le toca. |
+| Ofrecer tablas, revancha | Harían falta mensajes que la sección 4 no tiene. |
+| Pantalla de sala de espera con «Comenzar» | El servidor arranca la partida en cuanto el segundo jugador entra; un botón que no hiciera nada sería un adorno mentiroso. Su contenido (avatar, nombre, color, estado) vive en los asientos de la partida. |
+| Franja de reconexión | El servidor destruye la sala en cuanto el socket se va, y no guarda estado entre conexiones. No hay a qué reconectarse. |
+| Flechas ⟨ ⟩ para recorrer la partida | Es funcionalidad, no diseño: obliga a tener en pantalla una posición que no es la que se juega y a decidir qué pasa cuando llega una jugada a mitad del rebobinado. |
+| Apertura detectada | Necesita un libro de aperturas que la aplicación no lleva. |
+| Enlace `gambito.app/s/TOKEN` | La aplicación se sirve desde un servidor de desarrollo en una dirección de LAN y no tiene ninguna ruta que acepte un token. El enlace sería una promesa que no puede cumplir. |
+
+**Lo que la maqueta no podía dar**, porque cada mesa de trabajo suya es un
+ancho de escritorio fijo con un apodo verosímil dentro: el comportamiento en
+pantallas estrechas. Inicio se apila por debajo de 56rem, con el formulario
+primero —en un teléfono lo que hay que hacer manda sobre lo que hay que leer—.
+La partida se apila por debajo de 68rem en el orden tablero, chat, historial.
+El tablero mide los 68px por casilla de la maqueta cuando hay sitio y se encoge
+con su columna cuando no lo hay, con los marcadores de jugada legal expresados
+en porcentaje para que conserven la proporción.
+
+**Un error propio encontrado midiendo**, no mirando: a 413px de ancho la página
+se desplazaba en horizontal. La causa era que el panel del formulario de Inicio
+es una rejilla y su pista tomaba como mínimo los 400px fijos de la tarjeta, con
+lo que el `max-width: 100%` de la tarjeta se medía contra esa misma pista y no
+podía actuar nunca. Las pistas afectadas pasaron a `minmax(0, …)`.
+
+**Verificación.** 89 pruebas del servidor, `oxlint` y `vite build` en verde.
+Partida completa entre dos navegadores contra el servidor real: creación,
+unión, seis jugadas, chat en las dos direcciones, mate del pastor, diálogo de
+fin con «4 jugadas», peón capturado en la lista de capturas y ventaja `+1`.
+Error `ROOM_FULL` provocado de verdad con un tercer jugador. Sin desbordamiento
+horizontal a 413px ni a 803px.
+
+### 29 de agosto de 2026 — Reloj de partida, y cinco arreglos de la maqueta
+
+**El reloj**, que es la primera ampliación del contrato desde el bloque 1. Un
+solo modo de juego: partida rápida de **5 minutos por jugador, sin incremento**,
+de modo que una partida entera cabe en diez.
+
+- **Decisión: el reloj vive en el servidor.** Es la única parte de una partida
+  que un jugador no puede decidir por su cuenta. Las reglas sí pueden quedarse
+  en el cliente —la decisión 2.3— porque un cliente que mienta sobre ellas solo
+  rompe su propio tablero: el rival valida la misma posición y no le sigue. Un
+  cliente que mienta sobre el reloj le roba tiempo a otro, y eso no se corrige
+  solo. `INITIAL_TIME_SECONDS` está en `server/rooms.py`.
+- **El reloj arranca cuando se sienta el segundo jugador**, no cuando se crea la
+  sala: el anfitrión no debe perder tiempo esperando a un rival.
+- **Solo se cobra al que tiene el turno.** `Room` guarda los segundos de cada
+  bando y el instante en que el que mueve empezó a pensar; jugar cobra lo
+  transcurrido y pasa el cronómetro al otro.
+- **No se envía un mensaje por segundo.** Una cuenta atrás es perfectamente
+  predecible, así que lo único que vale la pena poner en el cable es el momento
+  en que cambia: el servidor manda una lectura `clock` al empezar, tras cada
+  jugada y al terminar, y los clientes descuentan solos entre una y otra. Como
+  la lectura se sella con la hora en que **llega al navegador**, la pantalla va
+  por detrás del servidor un salto de red — que es el sentido correcto: puede
+  enseñar a un jugador un poco más de tiempo del que tiene, nunca menos.
+- **Una partida puede terminar sin que nadie envíe nada**, que es justo el
+  sentido de un reloj, así que alguien tiene que mirar: un hilo barrendero en
+  `server.py` recorre las salas cada 0,2 s y cierra las que se quedaron sin
+  tiempo. Una jugada y el barrendero pueden llegar a la vez a una sala cuya
+  bandera acaba de caer; los dos pasan por el mismo lock, así que decide el
+  primero y el segundo encuentra la partida ya terminada.
+
+**Un problema que el reloj creó y hubo que cerrar.** Tras un jaque mate nadie
+mueve. El servidor no sabe qué es un mate —no conoce las reglas— así que habría
+seguido descontando y, al cabo de cinco minutos, habría declarado ganador **al
+jugador que estaba mateado**. De ahí el mensaje `game_end`: el cliente, que sí
+ve el final, se lo dice al servidor para que pare el reloj. Está acotado a
+propósito —solo admite `checkmate` y `draw`, rechaza `resign` y `timeout`, que
+son del servidor, e ignora el segundo aviso porque los dos clientes lo mandan a
+la vez— y el cliente da preferencia al veredicto de su propio tablero sobre un
+`game_over` que ya viniera en camino.
+
+**Cinco arreglos pedidos sobre la maqueta ya implementada:**
+
+- **Las etiquetas no se veían.** El sistema las rellena con el paso 100 de una
+  rampa, y sobre este fondo ese paso es prácticamente el color de la página:
+  `neutral-100` contra la página son cinco valores de diferencia, que en un
+  proyector no son ninguna. Ahora todas llevan borde y el relleno baja un paso.
+  Dibujar el límite en vez de fiarlo al relleno es además lo que el sistema dice
+  que hay que hacer en todo lo demás: «draw with borders, rules and underlines».
+- **La inicial no estaba centrada en su círculo.** `place-items: center` centra
+  la caja de línea, y la caja de línea era la interlínea heredada de 1,55: todo
+  ese aire por arriba y por abajo, centrado en bloque, dejaba la letra alta.
+  `line-height: 1` lo corrige. Se le añadió además un relleno superior que
+  resultó estar de más y que hubo que quitar después; el porqué está en la
+  entrada siguiente. El peón del logo sí necesitaba corrección propia, porque
+  no está centrado en su caja de 45 unidades: está dibujado para apoyarse en
+  una casilla.
+- **El logo.** Un peón en un disco negro, junto al nombre en la barra. Es el
+  mismo peón del tablero, no un segundo dibujo, así que la marca y el juego no
+  pueden separarse. El favicon es el mismo.
+- **Las piezas fuera del tablero tenían un plato blanco detrás.** Un cuadrado de
+  color de casilla bajo cada pieza en el diálogo de coronación y en las
+  capturadas se leía como una baldosa pegada a la página, y estaba resolviendo
+  un problema que el dibujo ya resuelve: fuera del tablero una pieza la sostiene
+  su contorno, que es para lo que está el contorno. El plato se fue y el trazo
+  se engrosó donde hace falta, para lo cual el ancho de trazo pasó del atributo
+  del SVG a CSS.
+- **El indicador «Mueve» lo sustituye el reloj**, que es lo que la maqueta tenía
+  en ese hueco desde el principio.
+
+**Verificación.** 108 pruebas del servidor, de las que 15 son nuevas y sobre el
+reloj: que solo se cobre al que mueve, que el tiempo no baje de cero, que la
+sala en espera no consuma, que el barrendero encuentre la bandera caída y no la
+informe dos veces, que una jugada posterior a la caída no se aplique, y que la
+partida terminada congele sus cifras. El reloj se inyecta en `RoomRegistry` y en
+`ChessServer`, así que la caída de bandera se prueba **sobre sockets reales** en
+milisegundos en vez de saltarse el único camino que ningún mensaje dispara.
+
+En el navegador, con dos jugadores contra el servidor real: los dos relojes
+arrancan en 5:00, el turno los alterna correctamente y las dos pantallas
+coinciden cifra a cifra. La caída de bandera se probó de verdad levantando el
+mismo servidor con un reloj de 20 segundos y apuntando el cliente ahí desde su
+propia pantalla de ajustes: sin que nadie moviera, el reloj bajó a 0:00 y los
+dos navegadores recibieron el final, «Pierdes la partida / Se te acabó el
+tiempo» y «Ganas la partida».
+
+### 29 de agosto de 2026 — Cinco minutos por jugador, y el centrado bien medido
+
+- **El control de tiempo baja a 5 minutos por bando**, de modo que una partida
+  entera cabe en diez. Es un solo número, `INITIAL_TIME_SECONDS` en
+  `server/rooms.py`; el cliente lleva una copia en `src/lib/clock.js` que solo
+  sirve para escribir «5 min» en el inicio y en la sala de espera, porque antes
+  de empezar una partida el navegador no tiene de dónde sacarlo. Las cifras que
+  se juegan vienen siempre del servidor. Las pruebas usan la constante, así que
+  siguen valiendo sin tocarlas.
+
+- **La inicial seguía medio píxel baja, y la culpa era de la corrección
+  anterior.** El relleno superior que se había añadido para centrarla estaba de
+  más: `line-height: 1` ya la centra por sí solo, y el relleno la empujaba
+  0,5 px por debajo del medio en un círculo de 30 px — poco, pero se ve.
+
+  Lo que falló fue el método. La primera medición partía de
+  `fontBoundingBoxAscent` y `fontBoundingBoxDescent` de canvas para deducir
+  dónde cae la línea base dentro de la caja, y esas métricas no tienen por qué
+  ser las que el navegador usa para componer. Esta vez no se dedujo nada:
+
+  1. La línea base se **mide** metiendo en el elemento un `inline-block` de
+     altura cero, que por definición se apoya en ella. (Al primer intento se
+     coló como un segundo elemento de la rejilla y cayó en su propia fila; hubo
+     que encerrar letra y marcador en un único ítem.)
+  2. La altura de mayúscula se **mide** dibujando la letra en un canvas y
+     recorriendo los píxeles hasta encontrar tinta, en vez de preguntársela a
+     una API. (Aquí también hubo un tropiezo: `getComputedStyle` devuelve un
+     objeto vivo, y al leerlo después de sacar la sonda del documento venía
+     vacío, con lo que el canvas se quedó con su tipografía por defecto y
+     declaró 8 px de altura de mayúscula para todas las letras.)
+
+  Con las dos cifras medidas: sin relleno, todas las mayúsculas de Cormorant
+  caen a menos de 0,05 px del centro a tamaño real. El relleno se fue.
+
+- **Cifras de caja alta en el avatar.** Un apodo puede empezar por número —
+  `7Renata` es un apodo perfectamente normal— y las cifras por defecto de
+  Cormorant son de estilo antiguo: se sientan a la altura de la equis y se
+  saldrían del medio. `font-variant-numeric: lining-nums` las sube a altura de
+  mayúscula. Comprobado en pantalla: el `7` sale del mismo alto que la `R`.
+
 ---
 
 ## 10. Convenciones del repositorio
 
 - **Ramas:** Gitflow. `main` estable, `dev` de integración, `feature/*` para cada
   bloque. El bloque 1 se desarrolló en `feature/socket-server`; el bloque 2, en
-  `feature/react-client`; el bloque 3, en `feature/chat-and-polish`.
+  `feature/react-client`; el bloque 3, en `feature/chat-and-polish`. El rediseño
+  posterior sobre la maqueta Gambito va en `feature/gambito-design`, que sale de
+  `feature/chat-and-polish` y por tanto se integra después de ella. El reloj y
+  los arreglos de detalle continúan en esa misma rama.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`,
   `test:`), en inglés.
 - **Código:** en inglés, incluidos nombres y comentarios.

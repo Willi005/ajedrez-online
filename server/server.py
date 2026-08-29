@@ -12,9 +12,10 @@ import json
 import logging
 import socket
 import threading
+import time
 
 from server.protocol import ValidationError, validate_client_message
-from server.rooms import RoomError, RoomRegistry
+from server.rooms import INITIAL_TIME_SECONDS, RoomError, RoomRegistry
 from server.websocket import (
     CLOSE_MESSAGE_TOO_BIG,
     CLOSE_NORMAL,
@@ -38,21 +39,32 @@ RECV_CHUNK = 4096
 HANDSHAKE_TIMEOUT = 10.0
 CLIENT_TIMEOUT = 300.0
 
+# How often the sweeper looks for a clock that has run out. A game can end with
+# nobody sending anything, so the only way to notice is to look; a fifth of a
+# second is far below what a player can perceive and costs one pass over a
+# handful of rooms.
+CLOCK_SWEEP_SECONDS = 0.2
+
 logger = logging.getLogger("ajedrez")
 
 
 class ChessServer:
-    def __init__(self, host=DEFAULT_HOST, port=DEFAULT_PORT):
+    def __init__(self, host=DEFAULT_HOST, port=DEFAULT_PORT, clock=time.monotonic):
         self.host = host
         self.requested_port = port
         self.port = None
         self._socket = None
         self._running = False
-        self._rooms = RoomRegistry()
+        # The clock is injectable so the tests can watch a ten-minute game run
+        # out in milliseconds, over real sockets, instead of skipping the one
+        # path that no message triggers.
+        self._clock = clock
+        self._rooms = RoomRegistry(clock=clock)
         # Guards writes to a client socket: two threads can relay to the same
         # peer, and interleaved sendall() calls would corrupt the frame stream.
         self._send_locks = {}
         self._send_locks_guard = threading.Lock()
+        self._sweeper = None
 
     # -- lifecycle ---------------------------------------------------------
 
@@ -81,7 +93,14 @@ class ChessServer:
             self.bind()
 
         self._running = True
-        logger.info("Servidor escuchando en %s:%s", self.host, self.port)
+        self._sweeper = threading.Thread(target=self._sweep_clocks, daemon=True)
+        self._sweeper.start()
+        logger.info(
+            "Servidor escuchando en %s:%s (partidas de %d minutos)",
+            self.host,
+            self.port,
+            int(INITIAL_TIME_SECONDS // 60),
+        )
 
         while self._running:
             try:
@@ -100,6 +119,26 @@ class ChessServer:
             worker.start()
 
         logger.info("Servidor detenido.")
+
+    def _sweep_clocks(self):
+        """End the games whose clock ran out, and tell both players."""
+        while self._running:
+            time.sleep(CLOCK_SWEEP_SECONDS)
+            try:
+                for room, loser in self._rooms.expire_timeouts():
+                    winner = "black" if loser == "white" else "white"
+                    logger.info(
+                        "sala %s: se acabó el tiempo de las %s", room.token, loser
+                    )
+                    # The final reading first, so both boards land on 0:00
+                    # from the server's figures and not from their own ticking.
+                    self._broadcast_clock(room)
+                    self._broadcast(
+                        room,
+                        {"type": "game_over", "reason": "timeout", "winner": winner},
+                    )
+            except Exception:  # noqa: BLE001 - the sweeper must outlive one bad room
+                logger.exception("error en el barrido de relojes")
 
     def stop(self):
         self._running = False
@@ -213,6 +252,7 @@ class ChessServer:
             "move": self._handle_move,
             "chat": self._handle_chat,
             "resign": self._handle_resign,
+            "game_end": self._handle_game_end,
         }
 
         try:
@@ -245,8 +285,30 @@ class ChessServer:
                 },
             )
 
+        # The clock is already running by the time `start` goes out, so the
+        # first reading follows it immediately rather than waiting for a move.
+        self._broadcast_clock(room)
+
     def _handle_move(self, connection, peer, message):
-        room = self._rooms.record_move(connection)
+        room, time_left, flagged = self._rooms.record_move(connection)
+
+        # The flag fell before this move arrived, so the move never happened.
+        # Announcing the loss on time is the whole answer: there is nothing to
+        # relay, and the mover's own board will be locked by the same message.
+        if flagged is not None:
+            winner = "black" if flagged == "white" else "white"
+            logger.info(
+                "[%s] jugada descartada: se acabó el tiempo de las %s en la sala %s",
+                peer,
+                flagged,
+                room.token,
+            )
+            self._broadcast_clock(room, time_left)
+            self._broadcast(
+                room, {"type": "game_over", "reason": "timeout", "winner": winner}
+            )
+            return
+
         room.moves.append(message)
         opponent = room.other_player(connection)
         logger.info(
@@ -257,6 +319,11 @@ class ChessServer:
             room.token,
         )
         self._send(opponent.connection, message)
+
+        # Both players get the reading, not just the one who moved: each side's
+        # display of the other's clock is only ever as right as the last thing
+        # the server told it.
+        self._broadcast_clock(room, time_left)
 
     def _handle_chat(self, connection, peer, message):
         room = self._rooms.room_of(connection)
@@ -282,11 +349,42 @@ class ChessServer:
         winner = "black" if player.color == "white" else "white"
         logger.info("[%s] se rindió en la sala %s", peer, room.token)
 
-        payload = {"type": "game_over", "reason": "resign", "winner": winner}
-        for other in (room.white, room.black):
-            if other is not None:
-                self._send(other.connection, payload)
         room.status = "finished"
+        room.stop_clock(self._clock())
+        self._broadcast(
+            room, {"type": "game_over", "reason": "resign", "winner": winner}
+        )
+
+    def _handle_game_end(self, connection, peer, message):
+        """A client reporting that its own board reached mate or a draw.
+
+        Both clients hold the same position and both will send this, so the
+        second one to arrive finds the room already finished and is dropped.
+        Taking the client's word here is the same bargain design 2.3 already
+        made: the rules live in the browser, and a client that lies about the
+        position is only ever lying to its own opponent, who is checking the
+        very same board.
+        """
+        room = self._rooms.room_of(connection)
+        if room is None:
+            raise RoomError("NOT_IN_ROOM", "No estás en una partida.")
+        if room.status != "playing":
+            return
+
+        room.status = "finished"
+        room.stop_clock(self._clock())
+        logger.info(
+            "[%s] la sala %s terminó en %s", peer, room.token, message["reason"]
+        )
+        self._broadcast_clock(room)
+        self._broadcast(
+            room,
+            {
+                "type": "game_over",
+                "reason": message["reason"],
+                "winner": message["winner"],
+            },
+        )
 
     # -- sending ------------------------------------------------------------
 
@@ -307,6 +405,32 @@ class ChessServer:
 
     def _send_error(self, connection, code, message):
         self._send(connection, {"type": "error", "code": code, "message": message})
+
+    def _broadcast(self, room, payload):
+        """Send one payload to everyone still seated in the room."""
+        for player in (room.white, room.black):
+            if player is not None:
+                self._send(player.connection, payload)
+
+    def _broadcast_clock(self, room, time_left=None):
+        """Tell both players what both clocks read, and which one is running.
+
+        The clients tick between these readings instead of being sent a message
+        every second: a countdown is perfectly predictable, so the only thing
+        worth putting on the wire is the moment it changes.
+        """
+        if time_left is None:
+            time_left = room.time_left(self._clock())
+        self._broadcast(
+            room,
+            {
+                "type": "clock",
+                "white": round(time_left["white"], 2),
+                "black": round(time_left["black"], 2),
+                "turn": room.turn,
+                "running": room.status == "playing",
+            },
+        )
 
     # -- teardown -----------------------------------------------------------
 

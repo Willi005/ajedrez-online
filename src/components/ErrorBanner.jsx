@@ -1,3 +1,5 @@
+import Icon from './Icon.jsx'
+
 /**
  * Turns a server error into something the player can act on.
  *
@@ -5,6 +7,9 @@
  * is free text, so the code is what gets matched here. Anything unmapped falls
  * back to the server's own wording rather than to a generic apology: an
  * unexpected code is exactly when the real text is worth reading.
+ *
+ * Drawn as the full-width strip the maquette uses under the nav bar for its
+ * reconnection notice, in the danger ramp rather than the accent one.
  */
 const RECOVERY = {
   ROOM_NOT_FOUND: {
@@ -39,6 +44,10 @@ const RECOVERY = {
     title: 'La partida aún no empieza',
     hint: 'Falta que tu rival se una con el token.',
   },
+  INVALID_REASON: {
+    title: 'El servidor rechazó el final de la partida',
+    hint: 'Solo el jaque mate y las tablas se informan desde el tablero.',
+  },
   DISCONNECTED: {
     title: 'Se perdió la conexión con el servidor',
     hint: 'Se reintenta sola. Si no vuelve, revisa la dirección del servidor más abajo.',
@@ -49,29 +58,23 @@ export default function ErrorBanner({ error, onDismiss }) {
   const known = RECOVERY[error.code]
 
   return (
-    <div className="banner" role="alert">
-      <div className="banner__body">
-        <p className="banner__title">{known ? known.title : error.message}</p>
-        {known && <p className="banner__hint">{known.hint}</p>}
-        <p className="banner__code">
-          Código: <code>{error.code}</code>
-        </p>
-      </div>
+    <div className="strip strip--danger" role="alert">
+      <span className="strip__dot" aria-hidden="true" />
+
+      <span className="strip__text">
+        <strong className="strip__title">{known ? known.title : error.message}</strong>
+        {known && <span className="strip__hint">{known.hint}</span>}
+      </span>
+
+      <code className="strip__code">{error.code}</code>
+
       <button
         type="button"
-        className="banner__dismiss"
+        className="btn btn-icon strip__dismiss"
         aria-label="Descartar el aviso"
         onClick={onDismiss}
       >
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-          <path
-            d="M5 5l10 10M15 5L5 15"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
+        <Icon name="x" size={16} />
       </button>
     </div>
   )

@@ -24,7 +24,16 @@ TOKEN_PATTERN = re.compile(rf"^[{TOKEN_ALPHABET}]{{{TOKEN_LENGTH}}}$")
 SQUARE_PATTERN = re.compile(r"^[a-h][1-8]$")
 PROMOTION_PIECES = frozenset("qrbn")
 
-CLIENT_MESSAGE_TYPES = frozenset({"create", "join", "move", "chat", "resign"})
+CLIENT_MESSAGE_TYPES = frozenset(
+    {"create", "join", "move", "chat", "resign", "game_end"}
+)
+
+# The two endings only the clients can see. The rules live in the browser by
+# design 2.3, so the server never learns that a position is mate — but with a
+# clock running it has to be told, or it would go on charging a game that ended
+# and eventually award it on time to the player who was mated.
+BOARD_ENDINGS = frozenset({"checkmate", "draw"})
+COLORS = frozenset({"white", "black"})
 
 
 class ValidationError(Exception):
@@ -112,6 +121,26 @@ def _validate_chat_text(payload):
     return text
 
 
+def _validate_board_ending(payload):
+    """Check the `reason`/`winner` pair a client reports for its own board."""
+    reason = payload.get("reason")
+    if reason not in BOARD_ENDINGS:
+        raise ValidationError(
+            "INVALID_REASON",
+            "El motivo debe ser 'checkmate' o 'draw'.",
+        )
+
+    winner = payload.get("winner")
+    if reason == "draw":
+        if winner is not None:
+            raise ValidationError("INVALID_WINNER", "Unas tablas no tienen ganador.")
+        return reason, None
+
+    if winner not in COLORS:
+        raise ValidationError("INVALID_WINNER", "El ganador debe ser 'white' o 'black'.")
+    return reason, winner
+
+
 def validate_client_message(text):
     """Validate one raw client message and return it normalised.
 
@@ -156,5 +185,9 @@ def validate_client_message(text):
 
     if message_type == "chat":
         return {"type": "chat", "text": _validate_chat_text(payload)}
+
+    if message_type == "game_end":
+        reason, winner = _validate_board_ending(payload)
+        return {"type": "game_end", "reason": reason, "winner": winner}
 
     return {"type": "resign"}
