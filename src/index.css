@@ -1,111 +1,219 @@
+/*
+ * Classical — design tokens and element defaults.
+ *
+ * Imported from the Claude Design project "Gambito"
+ * (_ds/classical-e133792b-2bb8-4d75-8e2d-fae77a16c87e/styles.css). The token
+ * block below is that file's, unchanged: an editorial, book-like system on a
+ * soft near-white ground, with colour applied as stroke rather than fill.
+ *
+ * Three things differ from the imported sheet, all deliberate:
+ *
+ * 1. The fonts are self-hosted. The design system loads Cormorant Garamond and
+ *    Lora from the Google Fonts CDN; this app has to run on a classroom LAN
+ *    with no route to the internet, so the same two families are installed as
+ *    npm packages and bundled by Vite (see main.jsx). Same faces, same weights,
+ *    no network call at runtime.
+ * 2. `.plate` is not carried over. It is the system's photograph wrapper and
+ *    there is not a single photograph in this app.
+ * 3. `.text-muted` is mixed at 65% rather than 55%. At 55% it measures 3.6:1 on
+ *    this ground, and everything it is used on here — hints, captions, the move
+ *    count, the board coordinates — is small text, which needs 4.5:1. 65% is
+ *    the first step that clears it on all four grounds in the app: page 4.6:1,
+ *    surface 4.6:1, light square 4.6:1, dark square 4.5:1. The system's readme
+ *    makes the same correction for accent text, prescribing accent-700 over the
+ *    bare accent at paragraph size; that one is applied in design-system.css.
+ *
+ * The component layer that sits on top of these tokens is in
+ * design-system.css; everything specific to Gambito is in App.css.
+ */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --color-bg: #f3f2f2;
+  --color-surface: #eae9e9;
+  --color-text: #201f1d;
+  --color-accent: #b68235;
+  --color-accent-2: #ac803e;
+  --color-divider: color-mix(in srgb, #201f1d 16%, transparent);
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Tonal ramps — generated in OKLCH on one shared lightness scale, so the
+     same step of any role matches the others in visual value. */
+  --color-neutral-100: #f8f4f4;
+  --color-neutral-200: #eae7e7;
+  --color-neutral-300: #d7d3d3;
+  --color-neutral-400: #bab6b6;
+  --color-neutral-500: #9b9797;
+  --color-neutral-600: #7d7979;
+  --color-neutral-700: #605d5d;
+  --color-neutral-800: #444141;
+  --color-neutral-900: #2d2b2b;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --color-accent-100: #fff3e4;
+  --color-accent-200: #ffe3bf;
+  --color-accent-300: #facb8d;
+  --color-accent-400: #e1ad66;
+  --color-accent-500: #c28d41;
+  --color-accent-600: #a06f24;
+  --color-accent-700: #7d5411;
+  --color-accent-800: #5a3b0a;
+  --color-accent-900: #3a270d;
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  /* Added. Classical is a mono gold system and carries no colour for something
+     that has gone wrong, but this app has a server that can refuse a move, a
+     token that can be mistyped and a socket that can drop. The four steps were
+     generated the way the readme says the other ramps were: the same OKLCH
+     lightness as accent-100/300/700/800, at a warm red hue, taking the largest
+     chroma that stays inside sRGB. So a danger step has the same visual weight
+     as the accent step of the same number, and the two ramps sit together. */
+  --color-danger-100: #fff0ee;
+  --color-danger-300: #ffc2b9;
+  --color-danger-700: #a0322c;
+  --color-danger-800: #73221e;
+
+  --font-heading: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  --font-heading-weight: 600;
+  --font-body: 'Lora', Georgia, 'Times New Roman', serif;
+
+  --space-1: 4.6px;
+  --space-2: 9.2px;
+  --space-3: 13.8px;
+  --space-4: 18.4px;
+  --space-6: 27.6px;
+  --space-8: 36.8px;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 7px;
+
+  /* Elevation — soft ink-tinted shadows on the light ground. A whisper. */
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
+  --shadow-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
+
+  /* -- board ---------------------------------------------------------------
+     The four square colours are the maquette's own (Gambito.dc.html, in the
+     `renderVals` block): two neutrals a step apart, and the same two warmed
+     towards the accent to mark the last move. The pieces take the ends of the
+     neutral ramp, which is what the maquette used for its placeholders. */
+  --board-light: #f1efec;
+  --board-dark: #dedad4;
+  --board-light-last: #fff3e4;
+  --board-dark-last: #ecd9bb;
+  --piece-white: var(--color-neutral-100);
+  --piece-black: var(--color-neutral-900);
+
+  color-scheme: light;
+  font-family: var(--font-body);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
+/* -- type ------------------------------------------------------------------ */
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--space-2);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+h1 { font-size: 42px; }
+h2 { font-size: 32px; }
+h3 { font-size: 25px; }
+h4 { font-size: 20px; }
+h5 { font-size: 16px; }
+
+h6 {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
+
 p {
-  margin: 0;
+  margin: 0 0 var(--space-3);
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--color-accent-700);
+  text-decoration: underline;
 }
 
 code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-muted {
+  color: color-mix(in srgb, var(--color-text) 65%, transparent);
+}
+
+/* Figures set tabular wherever they stand as figures rather than as prose:
+   tokens, clocks, move numbers, counters. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+/* -- utilities ------------------------------------------------------------- */
+
+/* Visible to a screen reader, not on screen. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

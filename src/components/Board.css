@@ -1,0 +1,161 @@
+/*
+ * The board.
+ *
+ * Every colour comes from a token in index.css, and the four square colours are
+ * the maquette's own. The last move is marked by warming both square colours
+ * towards the accent rather than by laying a wash over them, which is how the
+ * maquette does it and why the two highlighted squares still read as one light
+ * and one dark.
+ *
+ * The maquette draws the board at a fixed 68px per square, which is the size it
+ * should be when there is room. There is not always room — it shares a row with
+ * a 300px move list and a 320px chat — so the board is sized as a fraction of
+ * the column it is given, capped at the maquette's own 544px, and everything
+ * inside it is proportional. The coordinate gutters stay at 22px: they hold two
+ * characters at 11px and have no reason to grow.
+ */
+
+.board-frame {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-rows: auto 22px;
+  gap: 6px;
+  width: 100%;
+  /* 8 squares at the maquette's 68px, plus the rank gutter and its gap. */
+  max-width: calc(544px + 28px);
+}
+
+.board-frame__ranks,
+.board-frame__files {
+  display: grid;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--color-text) 65%, transparent);
+}
+
+.board-frame__ranks {
+  grid-template-rows: repeat(8, 1fr);
+}
+
+.board-frame__files {
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.board-frame__ranks span,
+.board-frame__files span {
+  display: grid;
+  place-items: center;
+}
+
+.board {
+  display: grid;
+  grid-template-rows: repeat(8, 1fr);
+  aspect-ratio: 1;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  user-select: none;
+  box-shadow: var(--shadow-md);
+}
+
+.board__row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+}
+
+/* A square is a button, so it has to shed the design system's button styling
+   first: sixty-four outlined chips is not a board. */
+.square {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.square--light {
+  background: var(--board-light);
+}
+
+.square--dark {
+  background: var(--board-dark);
+}
+
+/* The last move, warmed towards the accent. Both squares keep their own value,
+   so the pair still reads as one light and one dark. */
+.square--last.square--light {
+  background: var(--board-light-last);
+}
+
+.square--last.square--dark {
+  background: var(--board-dark-last);
+}
+
+/* A locked board is still the position the player is reading, so it keeps full
+   contrast: the design system's 45% for a disabled control must not reach it. */
+.square:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+/* Inset so the ring stays inside its own square instead of over its neighbour. */
+.square:focus-visible {
+  outline-offset: -3px;
+}
+
+.square--selected {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+/* An empty square you may move to: a dot in the middle. The maquette's 14px
+   and 5px, as fractions of its 68px square, so both markers hold their
+   proportions when the board is given a narrower column. */
+.square--target::after {
+  content: '';
+  position: absolute;
+  width: 21%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+
+/* An occupied square you may capture: a ring around the piece. */
+.square--capture::after {
+  content: '';
+  position: absolute;
+  inset: 7%;
+  border: 2px solid var(--color-accent);
+  border-radius: 50%;
+}
+
+/* -- pieces ---------------------------------------------------------------- */
+
+.piece {
+  position: relative;
+  z-index: 1;
+  width: 86%;
+  height: 86%;
+  /* Set here rather than on the SVG so a piece drawn away from the board can
+     take a heavier contour without a second set of shapes. */
+  stroke-width: 1.4;
+  pointer-events: none;
+}
+
+/* The contour is structural, not decoration: a white piece measures about
+   1.1:1 against a light square and would otherwise disappear into it. Both
+   colours are the ends of the system's neutral ramp, which is what the
+   maquette used for its own piece placeholders. */
+.piece--w {
+  color: var(--piece-white);
+  --piece-stroke: var(--color-neutral-800);
+  --piece-detail: var(--color-neutral-800);
+}
+
+.piece--b {
+  color: var(--piece-black);
+  --piece-stroke: var(--color-neutral-900);
+  --piece-detail: var(--color-neutral-100);
+}
