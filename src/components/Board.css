@@ -1,14 +1,22 @@
-/* Structural styling only. The visual design belongs to block 3. */
+/*
+ * The board.
+ *
+ * The grid and the relative size of the pieces are load-bearing and stay as
+ * they are; every colour goes through a token from index.css, so the board
+ * follows the page theme without a rule of its own per mode.
+ */
 
 .board {
   display: grid;
   grid-template-rows: repeat(8, 1fr);
-  width: min(80vmin, 560px);
+  width: min(76vmin, 560px);
+  max-width: 100%;
   aspect-ratio: 1;
-  border: 2px solid #2b2b2b;
-  border-radius: 4px;
+  border: 2px solid var(--board-frame);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   user-select: none;
+  box-shadow: var(--shadow-card);
 }
 
 .board__row {
@@ -21,10 +29,34 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 0;
   padding: 0;
   border: none;
+  border-radius: 0;
+  background: none;
   font: inherit;
   cursor: pointer;
+  transition: none;
+}
+
+/* The coordinates ride on the square, not on the page, so they take their
+   contrast from the square underneath and not from the page foreground. */
+.square--light {
+  color: var(--board-dark);
+}
+
+.square--dark {
+  color: var(--board-light);
+}
+
+/* The global hover outline would draw a box around every square it touches. */
+.square:hover:not(:disabled) {
+  border: none;
+}
+
+/* Inset so the ring stays inside its own square instead of over its neighbour. */
+.square:focus-visible {
+  outline-offset: -3px;
 }
 
 /* A locked board is still the position the player is reading, so it keeps full
@@ -35,19 +67,19 @@
 }
 
 .square--light {
-  background: #ebecd0;
+  background: var(--board-light);
 }
 
 .square--dark {
-  background: #779556;
+  background: var(--board-dark);
 }
 
 .square--last {
-  box-shadow: inset 0 0 0 100vmax rgb(255 214 0 / 25%);
+  box-shadow: inset 0 0 0 100vmax var(--board-highlight);
 }
 
 .square--selected {
-  box-shadow: inset 0 0 0 4px #f6c344;
+  box-shadow: inset 0 0 0 4px var(--board-ring);
 }
 
 /* An empty square you may move to: a dot in the middle. */
@@ -57,7 +89,7 @@
   width: 30%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: rgb(0 0 0 / 25%);
+  background: var(--board-marker);
 }
 
 /* An occupied square you may capture: a ring around the piece. */
@@ -66,7 +98,7 @@
   position: absolute;
   inset: 6%;
   border-radius: 50%;
-  border: 5px solid rgb(0 0 0 / 25%);
+  border: 5px solid var(--board-marker);
 }
 
 .piece {
@@ -78,15 +110,15 @@
 }
 
 .piece--w {
-  color: #fafafa;
-  --piece-stroke: #1f1f1f;
-  --piece-detail: #1f1f1f;
+  color: var(--piece-white);
+  --piece-stroke: var(--piece-line);
+  --piece-detail: var(--piece-line);
 }
 
 .piece--b {
-  color: #23211f;
-  --piece-stroke: #080706;
-  --piece-detail: #d8d4ce;
+  color: var(--piece-black);
+  --piece-stroke: var(--piece-line);
+  --piece-detail: var(--piece-white);
 }
 
 .square__rank,
@@ -94,7 +126,7 @@
   position: absolute;
   font-size: 0.65rem;
   font-weight: 700;
-  opacity: 0.6;
+  opacity: 0.75;
   pointer-events: none;
 }
 

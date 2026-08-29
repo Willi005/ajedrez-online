@@ -17,11 +17,12 @@ bloque siguiente.
 |---|---|---|
 | **1. Servidor** | Sockets TCP, WebSocket a mano, salas por token, validaciones, cliente de consola | ✅ Terminado |
 | **2. Cliente React** | Conexión, apodo, lobby, tablero con `chess.js`, sincronización de jugadas | ✅ Terminado |
-| **3. Chat y estética** | Chat, fin de partida, UI de errores, diseño minimal | ⬜ Pendiente |
+| **3. Chat y estética** | Chat, fin de partida, rendición, UI de errores, diseño minimal | ✅ Terminado |
 
-Los diagramas, la tabla de pruebas del informe y todo el material teórico
-quedan **fuera** de estos bloques: se elaboran al final, con la aplicación ya
-terminada.
+Los tres bloques están terminados: la aplicación se juega de principio a fin.
+Los diagramas, la tabla de pruebas del informe y todo el material teórico quedan
+**fuera** de estos bloques: se elaboran ahora, con la aplicación ya terminada.
+La sección 8 dice qué queda y con qué contar para hacerlo.
 
 ---
 
@@ -170,6 +171,21 @@ La dependencia también va en una sola dirección: `App.jsx` → hooks → `lib/
 `App.jsx` → componentes → `lib/`. Ningún componente abre el socket por su
 cuenta: todos los mensajes salen y entran por `App.jsx`.
 
+### Archivos del bloque 3
+
+| Archivo | Responsabilidad |
+|---|---|
+| `src/components/Chat.jsx` | El chat: historial y redacción. El historial lo guarda `App.jsx`. |
+| `src/components/GameOver.jsx` | Lee el resultado desde el punto de vista del jugador local. |
+| `src/components/ResignButton.jsx` | Rendición con confirmación en línea. |
+| `src/components/ErrorBanner.jsx` | Traduce el `code` del servidor a una salida concreta. |
+| `src/index.css` | Los tokens de diseño y los valores por defecto de los elementos. |
+| `src/App.css` | Disposición y componentes. Ningún color en crudo. |
+
+El bloque no añadió ni una llamada de socket: se apoya entero en el contrato de
+la sección 4, que ya tenía `chat`, `resign` y `game_over`. Tampoco tocó ningún
+archivo del servidor.
+
 ---
 
 ## 4. Contrato del protocolo
@@ -247,6 +263,12 @@ causa, sin tener que interpretar el texto.
 | `NOT_IN_ROOM` | La conexión intentó jugar o chatear sin estar en una sala. |
 | `GAME_NOT_STARTED` | Se intentó mover antes de que llegara el rival. |
 | `NOT_YOUR_TURN` | Un jugador intentó mover en el turno del otro. |
+| `NO_OPPONENT` | Se intentó chatear antes de que llegara el rival. |
+
+Los quince primeros los levanta `server/protocol.py` al validar el mensaje;
+`NO_OPPONENT` lo levanta `server/server.py`, porque no depende de la forma del
+mensaje sino del estado de la sala. Para el cliente son indistinguibles: llegan
+los dos como `error` con el mismo formato.
 
 ### 4.4. Secuencia completa
 
@@ -363,6 +385,10 @@ desde la propia interfaz, en el desplegable "Servidor" al pie de la página.
 navegador comparten `localStorage`, así que las dos verían el mismo apodo. Hay
 que usar dos navegadores distintos, o una ventana normal más una de incógnito.
 
+**Para probar el chat** el cliente de consola es más rápido que abrir un segundo
+navegador: `python3 -m tools.console_client`, luego `join <token> <apodo>` y
+`chat <texto>`.
+
 ### Verificación ya realizada
 
 **Servidor (bloque 1).** Las 89 pruebas pasan, de las cuales 17 son de
@@ -390,75 +416,57 @@ niveles:
   paso, promoción con elección de pieza, aviso de rival desconectado y cambio de
   la dirección del servidor en caliente.
 
+**Cliente (bloque 3).** Las 89 pruebas del servidor siguen pasando: el bloque no
+tocó ningún archivo suyo. Sobre eso, dos niveles más:
+
+- *Protocolo.* Un guion con dos clientes de socket crudos
+  (`tools/ws_client.py`) comprobó las ocho conductas del servidor de las que
+  depende el bloque: `NO_OPPONENT` al chatear sin rival, retransmisión del chat
+  con `from` y `text`, `INVALID_CHAT` con 201 caracteres, limpieza y recorte del
+  texto, `game_over` idéntico **a los dos** jugadores tras `resign`, el ganador
+  correcto, que se puede seguir chateando después de la rendición, y
+  `opponent_left` al cerrarse el socket del rival.
+- *Navegador.* Partida completa contra el servidor real, con el cliente de
+  consola de rival: apodo, creación de sala, unión, chat en las dos direcciones
+  con el eco propio alineado a la derecha, jugada `e2e4` sincronizada, rendición
+  del rival con la pantalla de victoria, `ROOM_NOT_FOUND` con su aviso, y mate
+  del loco (`f3 e5 g4 Dh4#`) detectado por el propio cliente sin ningún mensaje
+  del servidor. Se revisaron los dos temas, claro y oscuro.
+
+Queda una limitación conocida, y es del cliente de consola, no de la web: cuando
+el rival se va, el servidor saca de la sala solo al que se fue, así que el que
+queda sigue asociado a una sala terminada y un `join` nuevo le responde
+`ALREADY_IN_ROOM`. El cliente web no lo sufre porque volver al inicio cierra el
+socket —la única forma de salir de una sala, según se explica en la sección 9—;
+el de consola no lo cierra, y hay que reiniciarlo.
+
 ---
 
-## 8. Instrucciones para el bloque 3 (chat y estética)
+## 8. Qué queda fuera del código
 
-El cliente ya juega. Lo que falta es lo que rodea a la partida: hablar con el
-rival, cerrarla, avisar cuando algo se rechaza, y que todo eso se vea bien.
+La aplicación está terminada: se juega de principio a fin, con chat, rendición,
+final por reglas y aviso de errores. Lo que falta no es código, es el informe, y
+esta bitácora está escrita para que se pueda redactar sin volver a leer los
+fuentes.
 
-**Por construir:**
+**De dónde sale cada cosa:**
 
-1. **Chat.** Enviar `chat` y mostrar los `chat` que llegan. El constructor
-   `chatMessage(text)` ya existe en `src/lib/protocol.js`; falta la vista y
-   guardar el historial. El punto de enganche está en el `switch` de
-   `handleMessage` en `src/App.jsx`: hoy el caso `chat` cae en el `default` con
-   un comentario que lo dice.
-2. **Pantalla de fin de partida.** El estado `outcome` de `src/App.jsx` ya
-   guarda `{ reason, winner }` y se llena con `game_over` y con
-   `opponent_left`. Hoy lo pinta un panel de reemplazo marcado con un
-   comentario; hay que sustituirlo.
-3. **Rendición.** Falta el botón. `resignMessage()` ya existe en
-   `src/lib/protocol.js`; se envía con el `send` que devuelve `useGameSocket`.
-   El servidor responde `game_over` **a los dos** jugadores.
-4. **Jaque mate y tablas.** `useChessGame` ya expone `isCheckmate` e `isDraw`
-   en su instantánea, pero nadie los mira: el protocolo no tiene un mensaje para
-   el mate, así que el final por reglas lo detecta cada cliente por su cuenta.
-   Decidir cómo se muestra.
-5. **UI de errores.** El estado `lastError` de `src/App.jsx` guarda
-   `{ code, message }` tal como llegan del servidor. Hoy se muestra en un
-   párrafo de reemplazo. Los códigos están en la sección 4.3 y son estables:
-   conviene reaccionar según el código y no según el texto. Los que el usuario
-   puede provocar de verdad son `ROOM_NOT_FOUND`, `ROOM_FULL`,
-   `INVALID_TOKEN_FORMAT` e `INVALID_CHAT`.
-6. **Estética.** `src/index.css` y `src/App.css` son andamiaje: layout mínimo
-   para poder probar, pensado para reemplazarse entero.
+| Lo que pide el enunciado | Dónde está aquí |
+|---|---|
+| Descripción del protocolo | Sección 4 completa: mensajes en los dos sentidos, con ejemplos reales. |
+| Los diez métodos de socket | Sección 6: cada uno con el archivo y la línea donde se usa, y por qué. |
+| Diagrama de secuencia | Sección 4.4, ya dibujado; falta pasarlo a la herramienta del informe. |
+| Diagrama de actividad | Por hacer. Las fases del cliente (`lobby`, `waiting`, `playing`, `finished`) y sus transiciones están en la cabecera de `src/App.jsx`. |
+| Tabla de pruebas | Sección 7, "Verificación ya realizada": qué se probó en cada bloque y contra qué. |
+| Decisiones de diseño | Sección 2, cada una con la alternativa que se descartó y el motivo. |
+| Problemas y soluciones | Sección 9, en orden cronológico. |
 
-**Restricciones que hay que respetar:**
-
-- **No cambiar el formato de los mensajes.** El servidor está cerrado y sus 89
-  pruebas deben seguir pasando. Si algo parece necesitar un campo nuevo,
-  discutirlo antes: casi siempre se resuelve en el cliente.
-- **No romper el bloqueo de turno.** `GameScreen` impide mover fuera de turno
-  antes de enviar nada. No basta con que el servidor lo rechace.
-- **La dirección del servidor tiene que seguir siendo editable** desde la
-  interfaz. Es el plan de respaldo de la demostración.
-- No agregar backend, API REST ni base de datos.
-- Código y nombres en inglés. Los textos visibles al usuario, en español.
-- `src/components/Board.css` tiene la geometría del tablero además de los
-  colores. Los colores son libres; la rejilla y el tamaño relativo de las
-  piezas conviene dejarlos como están.
-- Las piezas son SVG en `src/components/Piece.jsx`, no caracteres Unicode, y
-  se tiñen con `color` y las variables `--piece-stroke` y `--piece-detail`.
-  Cambiar el tema del tablero es cambiar esas tres cosas.
-
-**Detalles del chat que ya están decididos por el servidor:**
-
-- El texto se limpia de caracteres de control y se recorta; después debe medir
-  entre 1 y 200 caracteres, o el servidor devuelve `INVALID_CHAT`.
-- El servidor **no** devuelve al emisor su propio mensaje: solo lo retransmite
-  al rival. El eco propio lo tiene que agregar el cliente al enviar.
-- Chatear sin rival en la sala devuelve `NO_OPPONENT`. Ese código no está en la
-  tabla de la sección 4.3 porque lo levanta `server.py` y no `protocol.py`;
-  conviene contemplarlo igual.
-
-**Cómo probar:** ver la sección 7. Para el chat, el cliente de consola es más
-rápido que abrir un segundo navegador: `python3 -m tools.console_client`, luego
-`join <token> <apodo>` y `chat <texto>`.
-
-**Fuera de alcance del bloque 3:** los diagramas, la tabla de pruebas del
-informe y el material teórico. Eso se hace al final, con la aplicación ya
-terminada.
+**Si alguien vuelve a tocar el código,** las restricciones que se respetaron en
+los tres bloques siguen valiendo: no cambiar el formato de los mensajes —el
+servidor está cerrado y sus 89 pruebas deben seguir pasando—, no romper el
+bloqueo de turno en el cliente, dejar la dirección del servidor editable desde
+la interfaz, y nada de backend, API REST ni base de datos. Código y nombres en
+inglés; los textos que ve el usuario, en español.
 
 ---
 
@@ -533,13 +541,225 @@ terminada.
   casilla que no es ni `from` ni `to`) y promoción (llega una pieza distinta de
   la que salió). Las tres se verificaron entre dos navegadores.
 
+### 29 de agosto de 2026 — Bloque 3
+
+- Se cerró el cliente sobre el contrato de la sección 4, sin tocar el servidor.
+  Las 89 pruebas siguen pasando. Orden: chat → rendición y fin de partida → UI
+  de errores → estética.
+- **Decisión: el eco del propio mensaje lo pone el cliente.** El servidor
+  retransmite el chat solo al rival, nunca de vuelta a quien lo escribió. Para
+  que las dos pantallas digan exactamente lo mismo, el cliente limpia el texto
+  igual que el servidor —quita caracteres de control y recorta— y guarda esa
+  versión ya normalizada, no la que se tecleó.
+- **Decisión: el mate y las tablas se leen del tablero, no se guardan.** El
+  protocolo no tiene un mensaje para el final por reglas y no le hace falta: los
+  dos clientes tienen la misma posición y `chess.js` llega al mismo veredicto en
+  cada uno, así que el final se detecta dos veces en paralelo en vez de
+  anunciarse. Se calcula durante el render, no en un `useEffect` con estado
+  propio: la posición ya afirma que la partida terminó, y una segunda copia de
+  ese hecho solo podría acabar contradiciéndola. El linter de React marcaba
+  precisamente eso.
+- **Decisión: los errores se distinguen por `code`, no por texto.** La sección
+  4.3 promete que el código es estable y que el mensaje es texto libre. Cada
+  código conocido lleva además la salida concreta —qué hacer para que no vuelva
+  a pasar—; uno desconocido cae en el mensaje del servidor, que es justo el caso
+  en el que conviene leerlo tal cual.
+- **Decisión: la rendición se confirma en la propia página.** Un `confirm()` del
+  navegador bloquea el hilo mientras está abierto, y con él la llegada de
+  mensajes del socket. El botón se convierte en la pregunta.
+- **Decisión: tipografía del sistema, no una fuente de Google.** Toda la
+  estética pasa por tokens CSS, y el modo oscuro es un único bloque que los
+  redefine. La fuente se dejó como la del sistema a propósito: la aplicación
+  tiene que funcionar en una red local sin internet —es el sentido del taller— y
+  una fuente servida desde un CDN fallaría exactamente durante la demostración.
+- **Problema encontrado: los estilos globales de `button` llegaban a las 64
+  casillas.** El tablero está hecho de botones, así que heredaba el borde al
+  pasar el ratón, el radio de esquina y el fondo del botón genérico. Es el mismo
+  choque que en el bloque 2 con `opacity` en los botones deshabilitados. Se
+  neutralizó en `Board.css`, y el anillo de foco se metió hacia dentro con
+  `outline-offset: -3px` para que no se dibuje encima de la casilla vecina.
+- **Problema encontrado: las coordenadas del tablero desaparecían en modo
+  oscuro.** Las letras y números de las casillas heredaban el color del texto de
+  la página, que en oscuro es casi blanco, sobre casillas claras. Ahora cada
+  casilla fija el color de su coordenada a partir del color de la casilla
+  contraria.
+- **Problema encontrado: las piezas perdían contraste al reutilizar los colores
+  del tablero.** Se les dieron tokens propios (`--piece-white`, `--piece-black`,
+  `--piece-line`), independientes del tema, porque el contraste que importa es
+  el de la pieza contra su casilla y ese no cambia entre claro y oscuro. En el
+  diálogo de promoción, que está fuera del tablero, cada pieza lleva encima un
+  cuadrado del color de las casillas claras: sobre la tarjeta blanca, las piezas
+  blancas no se veían.
+- **Problema encontrado: con el tablero y el chat lado a lado, el chat se salía
+  de la pantalla.** El tablero pedía `min(76vmin, 560px)` y no cedía. Se pasó la
+  fila a una rejilla con la columna del tablero en `minmax(0, auto)`: cuando la
+  ventana no da para los dos, el que se encoge es el tablero, que ya estaba
+  limitado a `max-width: 100%`.
+- **Hallazgo: el cliente de consola se queda atrapado en una sala terminada.**
+  Cuando el rival se va, el servidor saca de la sala solo al que se fue; el que
+  queda sigue asociado a ella y un `join` nuevo recibe `ALREADY_IN_ROOM`. El
+  cliente web no lo nota porque volver al inicio cierra el socket, que es la
+  única forma de salir de una sala. Está anotado en la sección 7; no se tocó el
+  servidor por ello.
+
+### 29 de agosto de 2026 — Bloque 3, segunda iteración estética
+
+Con la aplicación ya funcionando se rehízo la estética. La primera versión era
+correcta pero anónima: gris azulado y todo metido en tarjetas.
+
+- **Decisión: papel y tinta, no gris.** El verde de fieltro y el ámbar se
+  quedan —son lo que ata la página al tablero— pero el resto pasa a marfil
+  cálido en claro y a tinta cálida en oscuro. La referencia es un libro de
+  ajedrez impreso.
+- **Decisión: filetes en vez de tarjetas.** Las secciones se separan con una
+  línea. La tarjeta se conserva solo donde algo está de verdad **al lado** del
+  tablero y hay que distinguirlo de él: el chat y la tarjeta de fin de partida.
+  Junto a un tablero, que ya es un objeto denso, una página de cajas compite.
+- **Decisión: dos familias del sistema.** Serif para lo que se lee (títulos,
+  el token, los nombres de los jugadores) y sans para lo que se opera (botones,
+  campos, chat). Las etiquetas de sección —`CREAR UNA PARTIDA`, `CHAT`— siguen
+  en sans y en versalita espaciada, porque nombran un control y no encabezan
+  algo que se lea. Las dos familias son las del sistema: sin internet en la sala
+  no hay fuente de CDN que valga.
+- **Decisión: el token como placa de imprenta.** Serif grande, interletrado
+  ancho y filete doble arriba y abajo. Sin separadores entre los caracteres a
+  propósito: seleccionarlo sigue copiando exactamente los cinco que el rival
+  tiene que teclear.
+- **El contraste se midió, no se estimó.** Con la fórmula de luminancia relativa
+  de WCAG sobre cada par de la paleta. El verde anterior, `#15803D`, daba
+  **4.44:1** sobre el marfil nuevo: por debajo del mínimo de 4.5. Se bajó a
+  `#14702F` (5.5:1) y el ámbar a `#9A4708` (5.7:1). Todos los pares de texto
+  pasan de 4.5:1 en los dos temas; los apagados rondan 6:1.
+- **Problema encontrado: el marco del tablero desaparecía en modo oscuro.** Se
+  dibujó como filete doble del color de la tinta, y en oscuro «tinta» se había
+  puesto casi negro sobre un fondo casi negro. El marco necesita contraste
+  contra la página, no seguir al texto: en oscuro es una línea cálida clara.
+  El segundo filete se dibuja con `box-shadow` y no con `outline`, para que no
+  participe del layout y el tablero pueda ocupar el ancho completo en una
+  pantalla estrecha.
+- **Ajuste: las vistas de una sola columna van centradas.** Apodo, lobby y sala
+  de espera se centran enteros —títulos, textos, etiquetas y campos— como la
+  portada de un libro: hay una sola cosa que leer y nada contra lo que alinear.
+  Las vistas con tablero quedan fuera a propósito: ahí todo se alinea al
+  tablero y los asientos tienen que quedarse en sus bordes. Un campo no hereda
+  la alineación del bloque, así que se centra aparte; la dirección del servidor,
+  que es larga y vive fuera de esos bloques, se queda a la izquierda.
+- **Ajuste: el caballo del encabezado va en tinta.** Estaba en el verde
+  primario y quedaba como una insignia pegada al título. En el color del texto
+  se lee como parte del propio rótulo.
+- **Problema encontrado: el filete de la cabecera cambiaba de ancho.** `.app` es
+  un elemento flex que se ajusta a su contenido, así que la regla del encabezado
+  mide lo que mida lo de abajo. Está bien —queda alineada con el contenido en
+  todas las vistas— salvo que aparecía un aviso de error más ancho que el
+  formulario y la regla daba un salto. El aviso se limitó a la misma medida que
+  los formularios.
+
+### 29 de agosto de 2026 — Bloque 3, tercera iteración estética (definitiva)
+
+La segunda iteración quedó correcta pero apagada: demasiado sobria y con una
+paleta —marfil y verde— que no convencía. Se rehízo por tercera y última vez
+con tres decisiones tomadas a partir de eso.
+
+- **Decisión: un solo tema, el claro.** Se eliminó el bloque
+  `prefers-color-scheme: dark` entero. La aplicación se muestra en una sala de
+  clases, en máquinas cuyo tema nadie controla, y un aspecto que se sabe
+  revisado vale más que dos revisados a medias.
+- **Decisión: la página es slate y el contenido es blanco.** De ahí sale la
+  presencia que faltaba. Antes las tarjetas eran de un blanco roto sobre un
+  fondo marfil y no se separaban de nada; ahora `.card` es blanco sobre
+  `#F1F5F9` y se recorta solo, sin necesitar un borde pesado. `.card` es además
+  el único contenedor: se acabaron `.sheet` y `.section`.
+- **Decisión: azul, no verde.** Primario `#1D4ED8` y tablero en el azul-gris
+  clásico (`#DEE3E6` / `#8CA2AD`). El anillo de selección y el resaltado de la
+  última jugada se quedan en ámbar, que es el complementario del azul y por eso
+  se ve de inmediato sobre las dos casillas.
+- **Decisión: fuera el serif; la jerarquía la dan el peso y el tamaño.** Una
+  sola familia, la del sistema, con títulos a 700 y tracking cerrado.
+- **Decisión: el token es la única superficie oscura de la página.** Placa
+  `#1E293B` con el texto en blanco (14.6:1). Es lo que alguien lee en voz alta
+  al otro lado de una sala, así que es lo más pesado de la pantalla.
+- **Decisión: el asiento de quien tiene el turno es una tarjeta teñida**, no una
+  barra de 3 px. El borde mide lo mismo en los dos estados para que el tablero
+  no se mueva al cambiar el turno.
+- **Contrastes medidos** (fórmula de luminancia relativa de WCAG, sobre el fondo
+  `#F1F5F9`): texto `#0F172A` 16.3:1 · apagado `#475569` 6.9:1 · primario
+  `#1D4ED8` 6.1:1 · acento `#9A3412` 6.7:1 · peligro `#B91C1C` 5.9:1 · blanco
+  sobre el primario 6.7:1 · blanco sobre la placa 14.6:1. Todos por encima de
+  4.5:1.
+
+**Las piezas, rehechas en Staunton.** Las seis se redibujaron con la estructura
+del set real: pie ancho, plinto, trompeta, y encima la parte que da nombre a la
+pieza. El peón es el único con el pie más estrecho, como en un tablero de
+verdad.
+
+- **Problema encontrado: el caballo parecía un pájaro.** El primer intento
+  trazaba la cara como una diagonal larga desde la frente hasta un morro en
+  punta, sin mandíbula. Se redibujó recorriendo la silueta en orden —oreja,
+  nuca, cuerpo, base, pecho, garganta, mandíbula, mentón, caña de la nariz,
+  frente— y son la mandíbula y el morro romo los que hacen que se lea como un
+  caballo. La crin va como trazo de detalle y el ojo como un círculo.
+- **El contorno de las piezas es estructural, no decorativo.** Una pieza blanca
+  mide **1.2:1** contra una casilla clara: sin el contorno oscuro sencillamente
+  desaparecería. La negra sobre casilla clara da 11.4:1 y la blanca sobre
+  casilla oscura, 2.5:1 más el contorno. Es el mismo juego de formas el que
+  tiene que leerse sobre los dos colores de casilla, y eso lo resuelve el
+  contorno.
+
+### 29 de agosto de 2026 — Bloque 3, paleta Flexoki Light y corrección de las piezas
+
+**Los valores de color vigentes son los de esta entrada**, no los de la
+anterior: la paleta slate/azul se reemplazó por Flexoki Light.
+
+- **Decisión: la paleta es Flexoki Light, tomada del tema instalado.** Los
+  valores salen de `/usr/share/omarchy/themes/flexoki-light/colors.toml`, del
+  propio equipo donde se desarrolló, así que son los de la paleta y no una
+  imitación. La página usa su `dark_background` `#F2EFE4` y las tarjetas su
+  `paper` `#FFFCF0`, con lo que se conserva la estructura que daba presencia:
+  el contenido más claro que la página.
+- **Dos pasos de Flexoki hubo que elegirlos, no copiarlos.** Su
+  `dark_foreground` (base-500 `#878580`) da **3.2:1** sobre la página y su
+  `orange` (`#D0772B`) da **4.2:1**: los dos por debajo del mínimo de 4.5. El
+  texto apagado usa base-700 `#575653` (6.4:1) y el acento, orange-700
+  `#9D4310` (5.6:1). Es el tipo de cosa que solo aparece midiendo.
+- **Contrastes vigentes** sobre la página `#F2EFE4`: texto `#100F0F` 16.6:1 ·
+  apagado `#575653` 6.4:1 · primario `#205EA6` 5.7:1 · acento `#9D4310` 5.6:1 ·
+  peligro `#AF3029` 5.6:1 · paper sobre el primario 6.4:1 · paper sobre la placa
+  `#282726` 14.5:1. Todos por encima de 4.5:1.
+- **Flexoki no trae par de casillas**, porque es una paleta de interfaz. Se
+  eligió de su rampa neutra: base-50 `#F2F0E5` contra base-400 `#9F9D96` da
+  **2.4:1**, que es donde está un tablero de madera real (el verde/marfil
+  anterior daba 2.3:1). El anillo de selección y la última jugada toman el
+  amarillo de Flexoki, el único tono de la paleta que se ve al instante sobre
+  las dos casillas.
+
+**Correcciones a las piezas**, las tres detectadas mirándolas grandes:
+
+- **Problema: la base se leía como rayas.** Cada pieza apilaba trompeta, plinto
+  y pie —tres o cuatro bandas horizontales finas— y el resultado parecía un
+  pastel de capas, no algo torneado. Ahora son dos formas y una sola línea
+  divisoria, y **el cuerpo de cada pieza termina exactamente en el borde
+  superior de la trompeta**, de modo que pieza y base son una silueta continua
+  en vez de una figura puesta sobre un posavasos.
+- **Problema: a la corona de la dama le faltaba la punta central.** El trazado
+  pasaba plano por debajo de la perla del medio en vez de subir hasta ella, así
+  que esa perla quedaba flotando. Ahora la corona tiene sus cinco puntas y los
+  cuatro valles entre ellas.
+- **Problema: el morro del caballo era una cuchilla.** El pecho subía hasta una
+  garganta muy a la derecha y la mandíbula volvía casi paralela a él, dejando
+  una cuña finísima. Se rehízo el orden de la silueta: el cuello sube desde la
+  base, la mandíbula se proyecta a la izquierda por encima del pecho y el morro
+  es un bloque, no una punta. Ese voladizo de la mandíbula sobre el pecho es lo
+  que hace que se lea como un caballo.
+- Se quitó la banda de la corona del rey: era un trazo horizontal de lado a lado
+  y se leía como un tachón. La cruz ya identifica la pieza.
+
 ---
 
 ## 10. Convenciones del repositorio
 
 - **Ramas:** Gitflow. `main` estable, `dev` de integración, `feature/*` para cada
   bloque. El bloque 1 se desarrolló en `feature/socket-server`; el bloque 2, en
-  `feature/react-client`.
+  `feature/react-client`; el bloque 3, en `feature/chat-and-polish`.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`,
   `test:`), en inglés.
 - **Código:** en inglés, incluidos nombres y comentarios.

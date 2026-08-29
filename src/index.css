@@ -1,12 +1,99 @@
 /*
- * Structural baseline only. The visual design is block 3's scope; this exists
- * so the client is usable while blocks 2 and 3 are in flight.
+ * Design tokens and element defaults.
+ *
+ * The palette is Flexoki Light, taken from the theme installed on the machine
+ * this was built on (/usr/share/omarchy/themes/flexoki-light/colors.toml), so
+ * the values below are that palette's and not an imitation of it.
+ *
+ * Flexoki is a UI palette, so two of its steps needed choosing rather than
+ * copying. Its `dark_foreground` (base-500) reaches only 3.2:1 on the page and
+ * its `orange` only 4.2:1, both under the 4.5 minimum, so muted text takes
+ * base-700 and the accent takes orange-700. Every text pair here clears 4.5:1;
+ * the figures are in section 9 of docs/bitacora-desarrollo.md.
+ *
+ * Light only, by decision: the app is shown in a classroom on machines whose
+ * theme nobody controls, and one look that is known to be right beats two that
+ * are only half checked.
+ *
+ * The page sits on Flexoki's dark background and the content on its paper, so
+ * every card separates itself from the page without needing a heavy border.
+ * Hierarchy is carried by weight and size in a single sans family rather than
+ * by switching typeface.
+ *
+ * The type stack is the system one on purpose: the app has to run on a LAN with
+ * no internet — that is the whole point of the exercise — and a webfont from a
+ * CDN would fail exactly during the demo.
  */
 
 :root {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.5;
-  color-scheme: light dark;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* 4 / 8 / 12 / 16 / 24 / 32 / 48 */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  --background: #f2efe4;
+  --surface: #fffcf0;
+  --surface-sunken: #e6e4d9;
+  --foreground: #100f0f;
+  --muted: #575653;
+  --border: #cecdc3;
+  --border-strong: #b7b5ac;
+
+  --primary: #205ea6;
+  --primary-hover: #1a4f8c;
+  --on-primary: #fffcf0;
+  --primary-soft: #c6dde8;
+
+  --accent: #9d4310;
+  --accent-soft: #ffe7ce;
+
+  --danger: #af3029;
+  --danger-soft: #ffe1d5;
+
+  /* The one dark surface on the page, for the thing that has to be read out
+     loud across a room. */
+  --plate: #282726;
+  --on-plate: #fffcf0;
+
+  /* Flexoki has no board pair, so it is picked from its neutral ramp: base-50
+     against base-400 lands at 2.4:1, which is where a real wooden board sits.
+     The selection ring and the last move take Flexoki's yellow, the one hue in
+     the palette that reads instantly on both squares. */
+  --board-light: #f2f0e5;
+  --board-dark: #9f9d96;
+  --board-frame: #403e3c;
+  --board-highlight: rgb(208 162 21 / 38%);
+  --board-marker: rgb(16 15 15 / 26%);
+  --board-ring: #d0a215;
+  /* The pieces are their own object. A white piece measures 1.1:1 against a
+     light square, which is why the contour is structural and not decoration. */
+  --piece-white: #fffcf0;
+  --piece-black: #100f0f;
+  --piece-line: #100f0f;
+
+  --shadow-card:
+    0 1px 3px rgb(16 15 15 / 8%),
+    0 1px 2px rgb(16 15 15 / 4%);
+
+  --duration: 180ms;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  color-scheme: light;
+  font-family: var(--font-sans);
+  font-size: 100%;
+  line-height: 1.55;
 }
 
 * {
@@ -18,26 +105,65 @@ body {
   min-height: 100vh;
   display: flex;
   justify-content: center;
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* -- type ------------------------------------------------------------------ */
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 h1 {
-  font-size: 1.6rem;
-  margin: 0 0 1rem;
+  font-size: 1.75rem;
 }
 
 h2 {
-  font-size: 1.1rem;
-  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
 }
+
+p {
+  margin: 0;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
+/* -- controls -------------------------------------------------------------- */
 
 button {
   font: inherit;
-  padding: 0.5rem 1rem;
-  border: 1px solid currentColor;
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  /* 44px tall at the default font size: comfortable for touch. */
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--foreground);
+  font-weight: 600;
   cursor: pointer;
+  transition:
+    background-color var(--duration) var(--ease),
+    border-color var(--duration) var(--ease),
+    color var(--duration) var(--ease);
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--foreground);
+  background: var(--surface-sunken);
 }
 
 button:disabled {
@@ -45,15 +171,104 @@ button:disabled {
   cursor: not-allowed;
 }
 
-input {
-  font: inherit;
-  padding: 0.5rem;
-  border: 1px solid #8888;
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
+.button--primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
 }
 
-code {
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+.button--primary:hover:not(:disabled) {
+  border-color: var(--primary-hover);
+  background: var(--primary-hover);
+}
+
+.button--danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.button--danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+/* A button that must not compete with the board next to it. */
+.button--quiet {
+  min-height: 2.25rem;
+  padding: var(--space-1) var(--space-3);
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.button--quiet:hover:not(:disabled) {
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+input {
+  font: inherit;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--foreground);
+  transition:
+    border-color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease);
+}
+
+input::placeholder {
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+input:hover:not(:disabled) {
+  border-color: var(--foreground);
+}
+
+input:disabled {
+  background: var(--surface-sunken);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* One focus ring for everything, and it is never removed: keyboard players
+   need to see where they are on a board of 64 identical buttons. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* -- utilities ------------------------------------------------------------- */
+
+/* Visible to a screen reader, not on screen. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

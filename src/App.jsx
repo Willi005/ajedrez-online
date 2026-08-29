@@ -1,7 +1,11 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import Chat from './components/Chat.jsx'
+import ErrorBanner from './components/ErrorBanner.jsx'
+import GameOver from './components/GameOver.jsx'
 import GameScreen from './components/GameScreen.jsx'
 import Lobby from './components/Lobby.jsx'
 import NicknameForm from './components/NicknameForm.jsx'
+import Piece from './components/Piece.jsx'
 import ServerSettings from './components/ServerSettings.jsx'
 import WaitingRoom from './components/WaitingRoom.jsx'
 import { useChessGame } from './hooks/useChessGame.js'
@@ -9,9 +13,11 @@ import { useGameSocket } from './hooks/useGameSocket.js'
 import { ENV_SERVER_URL, resolveServerUrl } from './lib/config.js'
 import {
   SERVER_MESSAGE,
+  chatMessage,
   createMessage,
   joinMessage,
   moveMessage,
+  resignMessage,
 } from './lib/protocol.js'
 import {
   clearServerUrl,
@@ -38,6 +44,17 @@ const PHASE = {
   FINISHED: 'finished',
 }
 
+/**
+ * The end of the game as the position itself reports it, or null while there is
+ * still something to play. `turn` is the side that has to move, so at mate it is
+ * the side that lost.
+ */
+function boardOutcome({ isCheckmate, isDraw, turn }) {
+  if (isCheckmate) return { reason: 'checkmate', winner: turn === 'w' ? 'black' : 'white' }
+  if (isDraw) return { reason: 'draw', winner: null }
+  return null
+}
+
 export default function App() {
   const [nickname, setNickname] = useState(readNickname)
   const [editingNickname, setEditingNickname] = useState(false)
@@ -47,14 +64,26 @@ export default function App() {
   const [room, setRoom] = useState(null)
   const [outcome, setOutcome] = useState(null)
   const [lastError, setLastError] = useState(null)
+  const [messages, setMessages] = useState([])
+
+  // Chat lines need a stable key and the server sends no id, so they are
+  // numbered locally. A counter beats an index because the list only ever grows
+  // at the end and a ref never triggers a render of its own.
+  const nextMessageId = useRef(0)
 
   const game = useChessGame()
   const { reset: resetGame, applyOpponentMove } = game
+
+  const pushMessage = useCallback((message) => {
+    nextMessageId.current += 1
+    setMessages((current) => [...current, { id: nextMessageId.current, ...message }])
+  }, [])
 
   const returnToLobby = useCallback(() => {
     setPhase(PHASE.LOBBY)
     setRoom(null)
     setOutcome(null)
+    setMessages([])
     resetGame()
   }, [resetGame])
 
@@ -64,6 +93,7 @@ export default function App() {
         case SERVER_MESSAGE.CREATED:
           resetGame()
           setOutcome(null)
+          setMessages([])
           setRoom({
             token: message.token,
             color: message.color,
@@ -76,6 +106,7 @@ export default function App() {
         case SERVER_MESSAGE.START:
           resetGame()
           setOutcome(null)
+          setMessages([])
           setRoom({
             token: message.token,
             color: message.color,
@@ -83,10 +114,18 @@ export default function App() {
             opponent: message.opponent,
           })
           setPhase(PHASE.PLAYING)
+          pushMessage({
+            kind: 'system',
+            text: `Empieza la partida contra ${message.opponent}.`,
+          })
           break
 
         case SERVER_MESSAGE.MOVE:
           applyOpponentMove(message)
+          break
+
+        case SERVER_MESSAGE.CHAT:
+          pushMessage({ kind: 'opponent', author: message.from, text: message.text })
           break
 
         case SERVER_MESSAGE.GAME_OVER:
@@ -97,18 +136,18 @@ export default function App() {
         case SERVER_MESSAGE.OPPONENT_LEFT:
           setOutcome({ reason: 'opponent_left', winner: null })
           setPhase(PHASE.FINISHED)
+          pushMessage({ kind: 'system', text: 'Tu rival dejó la partida.' })
           break
 
         case SERVER_MESSAGE.ERROR:
           setLastError({ code: message.code, message: message.message })
           break
 
-        // `chat` is deliberately ignored: it belongs to block 3.
         default:
           break
       }
     },
-    [applyOpponentMove, nickname, resetGame],
+    [applyOpponentMove, nickname, pushMessage, resetGame],
   )
 
   // The server destroys the room as soon as the socket goes away and keeps no
@@ -126,6 +165,21 @@ export default function App() {
     onOpen: handleOpen,
     onClose: returnToLobby,
   })
+
+  // Checkmate and stalemate end the game without anyone sending anything: the
+  // protocol has no message for them, and it does not need one. Both clients
+  // hold the same position and chess.js reaches the same verdict on each, so
+  // the end is detected twice in parallel instead of being announced.
+  //
+  // It is read straight off the board rather than copied into state: the
+  // position already says the game is over, and a second copy of that fact
+  // could only ever disagree with it.
+  const localOutcome = boardOutcome(game.state)
+
+  // The server's word — a resignation, a rival who vanished — and the board's
+  // own verdict. Only one of the two can happen: the board freezes at mate, and
+  // a `game_over` locks it before anything else can be played.
+  const effectiveOutcome = outcome ?? localOutcome
 
   // -- actions --------------------------------------------------------------
 
@@ -145,6 +199,10 @@ export default function App() {
     send(joinMessage(token, nickname))
   }
 
+  function reportDisconnected(detail) {
+    setLastError({ code: 'DISCONNECTED', message: detail })
+  }
+
   function handleMove({ from, to, promotion }) {
     setLastError(null)
 
@@ -155,10 +213,28 @@ export default function App() {
       // The move never reached the server, so undo it rather than let the two
       // boards drift apart.
       game.undoLastMove()
-      setLastError({
-        code: 'DISCONNECTED',
-        message: 'No hay conexión con el servidor. La jugada no se envió.',
-      })
+      reportDisconnected('La jugada no se envió.')
+    }
+  }
+
+  function handleChatSend(text) {
+    setLastError(null)
+
+    // The server relays a chat line to the opponent only; it never echoes it
+    // back to whoever sent it, so the sender's own copy is added here.
+    if (!send(chatMessage(text))) {
+      reportDisconnected('El mensaje no se envió.')
+      return
+    }
+    pushMessage({ kind: 'self', author: nickname, text })
+  }
+
+  function handleResign() {
+    setLastError(null)
+    // The server answers `game_over` to both players, so the outcome is not set
+    // here: it arrives the same way it arrives for the winner.
+    if (!send(resignMessage())) {
+      reportDisconnected('No se pudo abandonar la partida.')
     }
   }
 
@@ -186,30 +262,31 @@ export default function App() {
     }
 
     if ((phase === PHASE.PLAYING || phase === PHASE.FINISHED) && room) {
+      // Chatting still works after a resignation — both players are in the room
+      // until one of them leaves — but not once the opponent's socket is gone,
+      // which is when the server would answer NO_OPPONENT.
+      const canChat = isOpen && effectiveOutcome?.reason !== 'opponent_left'
+
       return (
-        <>
+        <div className="game-layout">
           <GameScreen
             game={game}
             room={room}
-            isGameActive={phase === PHASE.PLAYING && isOpen}
+            isGameActive={phase === PHASE.PLAYING && isOpen && !effectiveOutcome}
             onMove={handleMove}
+            onResign={handleResign}
           />
-          {/* Block 3 replaces this with a proper end-of-game screen. */}
-          {outcome && (
-            <div className="panel">
-              <p>
-                {outcome.reason === 'opponent_left'
-                  ? 'Tu rival abandonó la partida.'
-                  : `Partida terminada (${outcome.reason}). Ganan las ${
-                      outcome.winner === 'white' ? 'blancas' : 'negras'
-                    }.`}
-              </p>
-              <button type="button" onClick={reconnect}>
-                Volver al inicio
-              </button>
-            </div>
-          )}
-        </>
+          <aside className="game-layout__side">
+            {effectiveOutcome && (
+              <GameOver
+                outcome={effectiveOutcome}
+                myColor={room.color}
+                onReturn={reconnect}
+              />
+            )}
+            <Chat messages={messages} canSend={canChat} onSend={handleChatSend} />
+          </aside>
+        </div>
       )
     }
 
@@ -225,16 +302,16 @@ export default function App() {
   }
 
   return (
-    <main className="app">
-      <h1>Ajedrez en línea</h1>
+    <div className="app">
+      <header className="brand">
+        <Piece type="n" color="w" className="brand__mark" />
+        <h1>Ajedrez en línea</h1>
+      </header>
 
-      {renderContent()}
+      <main className="app__content">{renderContent()}</main>
 
-      {/* Placeholder feedback; the error UI is block 3's job. */}
       {lastError && (
-        <p className="error" role="alert">
-          {lastError.message} <code>({lastError.code})</code>
-        </p>
+        <ErrorBanner error={lastError} onDismiss={() => setLastError(null)} />
       )}
 
       <ServerSettings
@@ -244,6 +321,6 @@ export default function App() {
         onChange={handleServerUrlChange}
         onReset={handleServerUrlReset}
       />
-    </main>
+    </div>
   )
 }

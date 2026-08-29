@@ -18,12 +18,12 @@ export default function WaitingRoom({ token, onCancel }) {
   }
 
   return (
-    <section className="panel">
+    <section className="card">
       <h2>Esperando a tu rival</h2>
       <p className="hint">Pásale este token para que se una:</p>
       <p className="token-display">{token}</p>
       <div className="row">
-        <button type="button" onClick={handleCopy}>
+        <button type="button" className="button--primary" onClick={handleCopy}>
           {copied ? 'Copiado' : 'Copiar token'}
         </button>
         <button type="button" onClick={onCancel}>

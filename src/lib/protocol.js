@@ -10,6 +10,7 @@
 export const TOKEN_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 export const TOKEN_LENGTH = 5
 export const MAX_NICKNAME_LENGTH = 16
+export const MAX_CHAT_LENGTH = 200
 
 const TOKEN_PATTERN = new RegExp(`^[${TOKEN_ALPHABET}]{${TOKEN_LENGTH}}$`)
 
@@ -52,6 +53,21 @@ export function isValidNickname(nickname) {
   return normalized.length >= 1 && normalized.length <= MAX_NICKNAME_LENGTH
 }
 
+/**
+ * Chat text is cleaned the same way, but the server *strips* control characters
+ * from a chat line instead of rejecting it, so this never fails: it returns the
+ * exact string the server would end up broadcasting. Sending the normalised
+ * text is what keeps the sender's own echo identical to what the opponent sees.
+ */
+export function normalizeChatText(text) {
+  return normalizeNickname(text)
+}
+
+export function isValidChatText(text) {
+  const normalized = normalizeChatText(text)
+  return normalized.length >= 1 && normalized.length <= MAX_CHAT_LENGTH
+}
+
 // -- outgoing messages ------------------------------------------------------
 
 export function createMessage(nickname) {
@@ -71,7 +87,7 @@ export function moveMessage({ from, to, promotion, fen }) {
 }
 
 export function chatMessage(text) {
-  return { type: 'chat', text }
+  return { type: 'chat', text: normalizeChatText(text) }
 }
 
 export function resignMessage() {

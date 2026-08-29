@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Board from './Board.jsx'
 import PromotionPicker from './PromotionPicker.jsx'
+import ResignButton from './ResignButton.jsx'
 
 /**
  * The playing view: the board, whose turn it is, and the click-to-move flow.
@@ -9,7 +10,20 @@ import PromotionPicker from './PromotionPicker.jsx'
  * reject an out-of-turn move with NOT_YOUR_TURN, but waiting for that round trip
  * to find out would let the board move under the player's hands first.
  */
-export default function GameScreen({ game, room, isGameActive, onMove }) {
+
+/** A player's name plus the colour they are playing. */
+function Seat({ nickname, color, isToMove, children }) {
+  return (
+    <div className={`seat${isToMove ? ' seat--to-move' : ''}`}>
+      <span className={`seat__color seat__color--${color}`} aria-hidden="true" />
+      <span className="seat__name">{nickname}</span>
+      <span className="seat__role">{color === 'white' ? 'blancas' : 'negras'}</span>
+      {children}
+    </div>
+  )
+}
+
+export default function GameScreen({ game, room, isGameActive, onMove, onResign }) {
   const { state, getLegalTargets, getPromotionChoices, pieceAt } = game
 
   const [selected, setSelected] = useState(null)
@@ -17,6 +31,7 @@ export default function GameScreen({ game, room, isGameActive, onMove }) {
   const [renderedFen, setRenderedFen] = useState(state.fen)
 
   const myColor = room.color === 'white' ? 'w' : 'b'
+  const opponentColor = room.color === 'white' ? 'black' : 'white'
   const isMyTurn = isGameActive && state.turn === myColor
 
   // A move by either side invalidates whatever was selected. Adjusting during
@@ -61,23 +76,19 @@ export default function GameScreen({ game, room, isGameActive, onMove }) {
     setSelected(piece && piece.color === myColor ? square : null)
   }
 
+  const turnLabel = !isGameActive
+    ? 'Partida detenida'
+    : isMyTurn
+      ? 'Tu turno'
+      : `Turno de ${room.opponent}`
+
   return (
     <div className="game">
-      <header className="game__header">
-        <p>
-          <strong>{room.nickname}</strong> ({room.color === 'white' ? 'blancas' : 'negras'})
-          {' vs '}
-          <strong>{room.opponent}</strong>
-        </p>
-        <p className="game__turn">
-          {!isGameActive
-            ? 'Partida detenida.'
-            : isMyTurn
-              ? 'Tu turno.'
-              : `Turno de ${room.opponent}.`}
-          {isGameActive && state.inCheck && ' ¡Jaque!'}
-        </p>
-      </header>
+      <Seat
+        nickname={room.opponent}
+        color={opponentColor}
+        isToMove={isGameActive && !isMyTurn}
+      />
 
       <Board
         board={state.board}
@@ -88,6 +99,15 @@ export default function GameScreen({ game, room, isGameActive, onMove }) {
         interactive={isMyTurn && !pending}
         onSquareClick={handleSquareClick}
       />
+
+      <Seat nickname={room.nickname} color={room.color} isToMove={isMyTurn}>
+        <ResignButton disabled={!isGameActive} onResign={onResign} />
+      </Seat>
+
+      <p className="game__turn" role="status" aria-atomic="true">
+        {turnLabel}
+        {isGameActive && state.inCheck && <strong className="game__check"> ¡Jaque!</strong>}
+      </p>
 
       {pending && (
         <PromotionPicker
