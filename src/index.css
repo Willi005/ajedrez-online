@@ -1,17 +1,24 @@
 /*
  * Design tokens and element defaults.
  *
+ * The palette is Flexoki Light, taken from the theme installed on the machine
+ * this was built on (/usr/share/omarchy/themes/flexoki-light/colors.toml), so
+ * the values below are that palette's and not an imitation of it.
+ *
+ * Flexoki is a UI palette, so two of its steps needed choosing rather than
+ * copying. Its `dark_foreground` (base-500) reaches only 3.2:1 on the page and
+ * its `orange` only 4.2:1, both under the 4.5 minimum, so muted text takes
+ * base-700 and the accent takes orange-700. Every text pair here clears 4.5:1;
+ * the figures are in section 9 of docs/bitacora-desarrollo.md.
+ *
  * Light only, by decision: the app is shown in a classroom on machines whose
  * theme nobody controls, and one look that is known to be right beats two that
  * are only half checked.
  *
- * The page sits on slate and the content sits on white, so every card separates
- * itself from the page without needing a heavy border. Hierarchy is carried by
- * weight and size in a single sans family rather than by switching typeface.
- *
- * Everything visual goes through a token; no component below names a raw
- * colour. Every text pair here clears 4.5:1 against its own background — the
- * figures are in section 9 of docs/bitacora-desarrollo.md.
+ * The page sits on Flexoki's dark background and the content on its paper, so
+ * every card separates itself from the page without needing a heavy border.
+ * Hierarchy is carried by weight and size in a single sans family rather than
+ * by switching typeface.
  *
  * The type stack is the system one on purpose: the app has to run on a LAN with
  * no internet — that is the whole point of the exercise — and a webfont from a
@@ -36,45 +43,49 @@
   --radius-lg: 12px;
   --radius-pill: 999px;
 
-  --background: #f1f5f9;
-  --surface: #ffffff;
-  --surface-sunken: #e9eef5;
-  --foreground: #0f172a;
-  --muted: #475569;
-  --border: #cbd5e1;
-  --border-strong: #94a3b8;
+  --background: #f2efe4;
+  --surface: #fffcf0;
+  --surface-sunken: #e6e4d9;
+  --foreground: #100f0f;
+  --muted: #575653;
+  --border: #cecdc3;
+  --border-strong: #b7b5ac;
 
-  --primary: #1d4ed8;
-  --primary-hover: #1e40af;
-  --on-primary: #ffffff;
-  --primary-soft: #dbeafe;
+  --primary: #205ea6;
+  --primary-hover: #1a4f8c;
+  --on-primary: #fffcf0;
+  --primary-soft: #c6dde8;
 
-  --accent: #9a3412;
-  --accent-soft: #ffedd5;
+  --accent: #9d4310;
+  --accent-soft: #ffe7ce;
 
-  --danger: #b91c1c;
-  --danger-soft: #fee2e2;
+  --danger: #af3029;
+  --danger-soft: #ffe1d5;
 
   /* The one dark surface on the page, for the thing that has to be read out
      loud across a room. */
-  --plate: #1e293b;
-  --on-plate: #ffffff;
+  --plate: #282726;
+  --on-plate: #fffcf0;
 
-  --board-light: #dee3e6;
-  --board-dark: #8ca2ad;
-  --board-frame: #334155;
-  --board-highlight: rgb(245 158 11 / 34%);
-  --board-marker: rgb(15 23 42 / 26%);
-  --board-ring: #f59e0b;
-  /* The pieces are their own object. A white piece measures 1.2:1 against a
+  /* Flexoki has no board pair, so it is picked from its neutral ramp: base-50
+     against base-400 lands at 2.4:1, which is where a real wooden board sits.
+     The selection ring and the last move take Flexoki's yellow, the one hue in
+     the palette that reads instantly on both squares. */
+  --board-light: #f2f0e5;
+  --board-dark: #9f9d96;
+  --board-frame: #403e3c;
+  --board-highlight: rgb(208 162 21 / 38%);
+  --board-marker: rgb(16 15 15 / 26%);
+  --board-ring: #d0a215;
+  /* The pieces are their own object. A white piece measures 1.1:1 against a
      light square, which is why the contour is structural and not decoration. */
-  --piece-white: #f8fafc;
-  --piece-black: #1f2933;
-  --piece-line: #16202b;
+  --piece-white: #fffcf0;
+  --piece-black: #100f0f;
+  --piece-line: #100f0f;
 
   --shadow-card:
-    0 1px 3px rgb(15 23 42 / 8%),
-    0 1px 2px rgb(15 23 42 / 4%);
+    0 1px 3px rgb(16 15 15 / 8%),
+    0 1px 2px rgb(16 15 15 / 4%);
 
   --duration: 180ms;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);

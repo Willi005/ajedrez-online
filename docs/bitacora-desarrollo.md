@@ -705,6 +705,54 @@ verdad.
   tiene que leerse sobre los dos colores de casilla, y eso lo resuelve el
   contorno.
 
+### 29 de agosto de 2026 — Bloque 3, paleta Flexoki Light y corrección de las piezas
+
+**Los valores de color vigentes son los de esta entrada**, no los de la
+anterior: la paleta slate/azul se reemplazó por Flexoki Light.
+
+- **Decisión: la paleta es Flexoki Light, tomada del tema instalado.** Los
+  valores salen de `/usr/share/omarchy/themes/flexoki-light/colors.toml`, del
+  propio equipo donde se desarrolló, así que son los de la paleta y no una
+  imitación. La página usa su `dark_background` `#F2EFE4` y las tarjetas su
+  `paper` `#FFFCF0`, con lo que se conserva la estructura que daba presencia:
+  el contenido más claro que la página.
+- **Dos pasos de Flexoki hubo que elegirlos, no copiarlos.** Su
+  `dark_foreground` (base-500 `#878580`) da **3.2:1** sobre la página y su
+  `orange` (`#D0772B`) da **4.2:1**: los dos por debajo del mínimo de 4.5. El
+  texto apagado usa base-700 `#575653` (6.4:1) y el acento, orange-700
+  `#9D4310` (5.6:1). Es el tipo de cosa que solo aparece midiendo.
+- **Contrastes vigentes** sobre la página `#F2EFE4`: texto `#100F0F` 16.6:1 ·
+  apagado `#575653` 6.4:1 · primario `#205EA6` 5.7:1 · acento `#9D4310` 5.6:1 ·
+  peligro `#AF3029` 5.6:1 · paper sobre el primario 6.4:1 · paper sobre la placa
+  `#282726` 14.5:1. Todos por encima de 4.5:1.
+- **Flexoki no trae par de casillas**, porque es una paleta de interfaz. Se
+  eligió de su rampa neutra: base-50 `#F2F0E5` contra base-400 `#9F9D96` da
+  **2.4:1**, que es donde está un tablero de madera real (el verde/marfil
+  anterior daba 2.3:1). El anillo de selección y la última jugada toman el
+  amarillo de Flexoki, el único tono de la paleta que se ve al instante sobre
+  las dos casillas.
+
+**Correcciones a las piezas**, las tres detectadas mirándolas grandes:
+
+- **Problema: la base se leía como rayas.** Cada pieza apilaba trompeta, plinto
+  y pie —tres o cuatro bandas horizontales finas— y el resultado parecía un
+  pastel de capas, no algo torneado. Ahora son dos formas y una sola línea
+  divisoria, y **el cuerpo de cada pieza termina exactamente en el borde
+  superior de la trompeta**, de modo que pieza y base son una silueta continua
+  en vez de una figura puesta sobre un posavasos.
+- **Problema: a la corona de la dama le faltaba la punta central.** El trazado
+  pasaba plano por debajo de la perla del medio en vez de subir hasta ella, así
+  que esa perla quedaba flotando. Ahora la corona tiene sus cinco puntas y los
+  cuatro valles entre ellas.
+- **Problema: el morro del caballo era una cuchilla.** El pecho subía hasta una
+  garganta muy a la derecha y la mandíbula volvía casi paralela a él, dejando
+  una cuña finísima. Se rehízo el orden de la silueta: el cuello sube desde la
+  base, la mandíbula se proyecta a la izquierda por encima del pecho y el morro
+  es un bloque, no una punta. Ese voladizo de la mandíbula sobre el pecho es lo
+  que hace que se lea como un caballo.
+- Se quitó la banda de la corona del rey: era un trazo horizontal de lado a lado
+  y se leía como un tachón. La cruz ya identifica la pieza.
+
 ---
 
 ## 10. Convenciones del repositorio
