@@ -637,6 +637,16 @@ correcta pero anónima: gris azulado y todo metido en tarjetas.
   El segundo filete se dibuja con `box-shadow` y no con `outline`, para que no
   participe del layout y el tablero pueda ocupar el ancho completo en una
   pantalla estrecha.
+- **Ajuste: las vistas de una sola columna van centradas.** Apodo, lobby y sala
+  de espera se centran enteros —títulos, textos, etiquetas y campos— como la
+  portada de un libro: hay una sola cosa que leer y nada contra lo que alinear.
+  Las vistas con tablero quedan fuera a propósito: ahí todo se alinea al
+  tablero y los asientos tienen que quedarse en sus bordes. Un campo no hereda
+  la alineación del bloque, así que se centra aparte; la dirección del servidor,
+  que es larga y vive fuera de esos bloques, se queda a la izquierda.
+- **Ajuste: el caballo del encabezado va en tinta.** Estaba en el verde
+  primario y quedaba como una insignia pegada al título. En el color del texto
+  se lee como parte del propio rótulo.
 - **Problema encontrado: el filete de la cabecera cambiaba de ancho.** `.app` es
   un elemento flex que se ajusta a su contenido, así que la regla del encabezado
   mide lo que mida lo de abajo. Está bien —queda alineada con el contenido en
