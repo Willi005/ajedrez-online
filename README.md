@@ -134,6 +134,10 @@ elsewhere. Note that `DPT=80` entries mean the guest omitted the `:5173` port.
 
 ## Tests
 
+108 tests over the protocol validator, the room registry and the WebSocket
+codec, plus end-to-end tests that run a real server on an ephemeral port and
+talk to it through real sockets.
+
 ```bash
 python3 -m unittest discover -s server/tests -t .
 ```
@@ -152,6 +156,8 @@ python3 -m unittest discover -s server/tests -t .
 | 1. Server | TCP sockets, hand-written WebSocket, token rooms, validation, console client | Done |
 | 2. React client | Connection, nickname, lobby, board with `chess.js`, move sync | Done |
 | 3. Chat and polish | Chat, resign, game-over screen, error UI, minimal styling | Done |
+| Gambito design | Imported design system, all screens, move list, PGN, captured material | Done |
+| Game clock | 5 minutes a side, kept by the server, with flag fall | Done |
 
 ## Documentation
 
