@@ -1,116 +1,289 @@
-/* Layout scaffolding. Block 3 owns the actual look. */
+/*
+ * Layout and components.
+ *
+ * Colours, spacing and radii all come from the tokens in index.css; nothing
+ * here names a raw value that a theme would need to change.
+ */
 
 .app {
   width: 100%;
-  max-width: 640px;
-  padding: 2rem 1rem 4rem;
+  max-width: 1060px;
+  min-height: 100vh;
+  padding: var(--space-5) var(--space-4) var(--space-6);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-5);
 }
+
+/* -- header ---------------------------------------------------------------- */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The knight from the board, re-tinted: the piece colours are meant for a
+   green square and would disappear against the page. */
+.brand__mark {
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--primary);
+  --piece-stroke: var(--primary);
+  --piece-detail: var(--surface);
+}
+
+.app__content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* The forms are read one at a time and should not stretch across the page;
+   the board layout sets its own width. */
+.app__content > .panel,
+.app__content > .lobby {
+  max-width: 27rem;
+}
+
+/* -- surfaces -------------------------------------------------------------- */
 
 .panel {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem;
-  border: 1px solid #8886;
-  border-radius: 8px;
-}
-
-.panel label {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.lobby {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.lobby form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
   align-items: center;
 }
 
 .hint {
-  margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.75;
+  font-size: 0.875rem;
+  color: var(--muted);
 }
 
 .greeting {
-  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.9375rem;
+  color: var(--muted);
 }
 
+.greeting strong {
+  color: var(--foreground);
+}
+
+/* A button that has to read as a link inside a sentence. */
 .link {
+  min-height: auto;
   padding: 0;
   border: none;
+  background: none;
+  color: var(--primary);
+  font-size: inherit;
+  font-weight: 500;
   text-decoration: underline;
-  cursor: pointer;
+  text-underline-offset: 2px;
+}
+
+.link:hover:not(:disabled) {
+  border: none;
+  color: var(--primary-hover);
+}
+
+/* -- lobby ----------------------------------------------------------------- */
+
+.lobby {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.lobby form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .token-input,
 .token-display {
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  letter-spacing: 0.3em;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
 }
 
+/* The trailing letter-space would push the text off centre. */
 .token-display {
-  margin: 0;
+  padding: var(--space-4) 0 var(--space-4) 0.25em;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
   font-size: 2rem;
-  font-weight: 700;
+  text-align: center;
 }
 
-.game {
+/* -- game layout ----------------------------------------------------------- */
+
+.game-layout {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-4);
 }
 
-.game__header {
+.game-layout__side {
+  width: 100%;
+  max-width: 30rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Wide enough for the board and the chat to sit next to each other. Below this
+   they stack, board first: it is what the player came for.
+
+   The board column is `minmax(0, auto)` so that on a screen only just wide
+   enough the board gives up width instead of pushing the chat off the page —
+   `.board` is capped at `max-width: 100%` and follows. */
+@media (min-width: 54rem) {
+  .game-layout {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(15rem, 21rem);
+    align-items: stretch;
+    justify-content: center;
+    gap: var(--space-5);
+  }
+
+  .game-layout__side {
+    max-width: none;
+  }
+
+  /* Fill the row, whose height the board sets, so the chat ends level with it. */
+  .game-layout__side .chat {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* The log takes the slack so the composer sits at the foot of the panel. */
+  .game-layout__side .chat__log {
+    flex: 1;
+    max-height: none;
+  }
+}
+
+.game {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+/* -- seats ----------------------------------------------------------------- */
+
+.seat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.5rem;
+  padding: 0 var(--space-2);
+  border-left: 3px solid transparent;
+  transition: border-color var(--duration) var(--ease);
+}
+
+/* Whose move it is, said with position rather than with a word. */
+.seat--to-move {
+  border-left-color: var(--primary);
+}
+
+.seat__color {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+}
+
+.seat__color--white {
+  background: var(--piece-white);
+}
+
+.seat__color--black {
+  background: var(--piece-black);
+}
+
+.seat__name {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.seat__role {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* Push whatever follows the name — the resign control — to the far edge. */
+.seat > :last-child:not(.seat__role) {
+  margin-left: auto;
+}
+
+.resign-confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.resign-confirm__question {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+/* -- game status ----------------------------------------------------------- */
+
+.game__turn {
+  font-size: 0.9375rem;
+  color: var(--muted);
   text-align: center;
 }
 
-.game__header p {
-  margin: 0.15rem 0;
-}
-
-.game__turn {
-  font-weight: 600;
+.game__check {
+  color: var(--danger);
 }
 
 .game__token {
-  margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.75;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  text-align: center;
 }
 
 .promotion {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #8886;
-  border-radius: 8px;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
   text-align: center;
 }
 
 .promotion p {
-  margin: 0 0 0.5rem;
+  margin-bottom: var(--space-2);
+  font-size: 0.875rem;
+  color: var(--muted);
 }
 
 .promotion .row {
@@ -118,66 +291,298 @@
 }
 
 .promotion__option {
-  display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
+  gap: var(--space-1);
+  padding: var(--space-2);
 }
 
+/* Away from the board, a white piece on a white card would vanish, so each
+   option carries a square of board with it. */
 .promotion__option .piece {
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 0.2rem;
+  border-radius: var(--radius-sm);
+  background: var(--board-light);
 }
 
 .promotion__name {
   font-size: 0.75rem;
+  font-weight: 500;
   /* The piece names are stored lower case for the accessible square labels
      ("Casilla b8, torre blanco"); here they head a button. */
   text-transform: capitalize;
 }
 
-.error {
-  width: 100%;
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #c0392b;
-  border-radius: 6px;
-  font-size: 0.9rem;
+/* -- end of game ----------------------------------------------------------- */
+
+.game-over {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--muted);
+  border-radius: var(--radius-md);
+  background: var(--surface);
 }
+
+.game-over--win {
+  border-left-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.game-over--loss {
+  border-left-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.game-over--neutral {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.game-over__headline {
+  font-size: 1.0625rem;
+}
+
+.game-over__headline:focus-visible {
+  outline-offset: 4px;
+}
+
+.game-over__detail {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.game-over button {
+  margin-top: var(--space-1);
+}
+
+/* -- chat ------------------------------------------------------------------ */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.chat__title {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chat__log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* Tall enough to hold a few lines when stacked under the board; the
+     side-by-side layout stretches it to the height of the board. */
+  min-height: 9rem;
+  max-height: 24rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+
+.chat__empty {
+  margin: auto 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.chat__line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 85%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+/* Who said what is carried by the side of the column, not only by the name. */
+.chat__line--opponent {
+  align-self: flex-start;
+  background: var(--surface-sunken);
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+.chat__line--self {
+  align-self: flex-end;
+  background: var(--primary-soft);
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.chat__line--system {
+  align-self: center;
+  max-width: 100%;
+  padding: var(--space-1) 0;
+}
+
+.chat__author {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.chat__system {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-style: italic;
+  text-align: center;
+}
+
+.chat__composer {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.chat__composer input {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat__counter {
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+/* -- error banner ---------------------------------------------------------- */
+
+.banner {
+  width: 100%;
+  max-width: 34rem;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+}
+
+.banner__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.banner__title {
+  font-weight: 600;
+}
+
+.banner__hint,
+.banner__code {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.banner__dismiss {
+  min-height: 2rem;
+  width: 2rem;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.banner__dismiss svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* -- server settings ------------------------------------------------------- */
 
 .server-settings {
   width: 100%;
+  max-width: 34rem;
   margin-top: auto;
-  padding: 0.75rem;
-  border: 1px solid #8886;
-  border-radius: 8px;
-  font-size: 0.85rem;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: 0.875rem;
 }
 
 .server-settings summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--muted);
   cursor: pointer;
+}
+
+.server-settings summary::marker {
+  color: var(--border-strong);
 }
 
 .server-settings form {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 
+/* The connection state, as a chip that can be read at a glance from across a
+   classroom. The dot repeats it without relying on colour alone. */
 .status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
+.status::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+}
+
 .status--open {
-  color: #2e7d32;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .status--connecting {
-  color: #ef6c00;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .status--closed,
 .status--idle {
-  color: #c0392b;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* Only the connecting dot pulses: a steady state should not keep moving. */
+.status--connecting::before {
+  animation: status-pulse 1.4s var(--ease) infinite;
+}
+
+@keyframes status-pulse {
+  50% {
+    opacity: 0.25;
+  }
 }
