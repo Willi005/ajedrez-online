@@ -4,7 +4,7 @@ import threading
 import unittest
 
 from server.protocol import TOKEN_ALPHABET, TOKEN_LENGTH
-from server.rooms import RoomError, RoomRegistry
+from server.rooms import INITIAL_TIME_SECONDS, RoomError, RoomRegistry
 
 
 class FakeConnection:
@@ -101,9 +101,10 @@ class TurnOwnershipTest(unittest.TestCase):
         self.registry.join_room(self.token, self.black, "beto")
 
     def test_white_moves_first_and_the_turn_passes_to_black(self):
-        room = self.registry.record_move(self.white)
+        room, _, flagged = self.registry.record_move(self.white)
 
         self.assertEqual(room.turn, "black")
+        self.assertIsNone(flagged)
 
     def test_rejects_a_move_from_the_player_whose_turn_it_is_not(self):
         with self.assertRaises(RoomError) as ctx:
@@ -126,6 +127,129 @@ class TurnOwnershipTest(unittest.TestCase):
             registry.record_move(lonely)
 
         self.assertEqual(ctx.exception.code, "GAME_NOT_STARTED")
+
+
+class FakeClock:
+    """A monotonic clock the test drives by hand.
+
+    The alternative is sleeping through a ten-minute game, so the registry takes
+    its clock as an argument and every timing test moves time explicitly.
+    """
+
+    def __init__(self):
+        self.now = 1000.0
+
+    def __call__(self):
+        return self.now
+
+    def advance(self, seconds):
+        self.now += seconds
+
+
+class ClockTest(unittest.TestCase):
+    def setUp(self):
+        self.clock = FakeClock()
+        self.registry = RoomRegistry(clock=self.clock)
+        self.white = FakeConnection("white")
+        self.black = FakeConnection("black")
+        self.token = self.registry.create_room(self.white, "ana")
+
+    def seat_black(self):
+        return self.registry.join_room(self.token, self.black, "beto")
+
+    def test_both_players_start_with_the_full_time(self):
+        room = self.seat_black()
+
+        left = room.time_left(self.clock())
+        self.assertEqual(left["white"], INITIAL_TIME_SECONDS)
+        self.assertEqual(left["black"], INITIAL_TIME_SECONDS)
+
+    def test_the_clock_does_not_run_while_the_room_waits_for_an_opponent(self):
+        room = self.registry.get_room(self.token)
+        self.clock.advance(120)
+
+        self.assertEqual(room.time_left(self.clock())["white"], INITIAL_TIME_SECONDS)
+
+    def test_only_the_side_to_move_is_charged(self):
+        room = self.seat_black()
+
+        self.clock.advance(30)
+
+        left = room.time_left(self.clock())
+        self.assertAlmostEqual(left["white"], INITIAL_TIME_SECONDS - 30)
+        self.assertEqual(left["black"], INITIAL_TIME_SECONDS)
+
+    def test_moving_stops_your_clock_and_starts_the_other(self):
+        self.seat_black()
+
+        self.clock.advance(30)
+        _, left, _ = self.registry.record_move(self.white)
+        self.assertAlmostEqual(left["white"], INITIAL_TIME_SECONDS - 30)
+
+        self.clock.advance(10)
+        room = self.registry.get_room(self.token)
+        after = room.time_left(self.clock())
+
+        # White is no longer being charged; black now is.
+        self.assertAlmostEqual(after["white"], INITIAL_TIME_SECONDS - 30)
+        self.assertAlmostEqual(after["black"], INITIAL_TIME_SECONDS - 10)
+
+    def test_time_never_goes_below_zero(self):
+        room = self.seat_black()
+
+        self.clock.advance(INITIAL_TIME_SECONDS + 500)
+
+        self.assertEqual(room.time_left(self.clock())["white"], 0.0)
+
+    def test_the_sweeper_finds_the_side_that_ran_out(self):
+        self.seat_black()
+
+        self.clock.advance(INITIAL_TIME_SECONDS + 1)
+        expired = self.registry.expire_timeouts()
+
+        self.assertEqual(len(expired), 1)
+        room, loser = expired[0]
+        self.assertEqual(room.token, self.token)
+        self.assertEqual(loser, "white")
+        self.assertEqual(room.status, "finished")
+
+    def test_the_sweeper_reports_a_finished_room_only_once(self):
+        self.seat_black()
+        self.clock.advance(INITIAL_TIME_SECONDS + 1)
+
+        self.registry.expire_timeouts()
+
+        self.assertEqual(self.registry.expire_timeouts(), [])
+
+    def test_the_sweeper_leaves_a_game_still_being_played_alone(self):
+        self.seat_black()
+
+        self.clock.advance(INITIAL_TIME_SECONDS - 1)
+
+        self.assertEqual(self.registry.expire_timeouts(), [])
+
+    def test_a_move_arriving_after_the_flag_fell_is_not_applied(self):
+        self.seat_black()
+
+        self.clock.advance(INITIAL_TIME_SECONDS + 1)
+        room, left, flagged = self.registry.record_move(self.white)
+
+        self.assertEqual(flagged, "white")
+        self.assertEqual(left["white"], 0.0)
+        # The turn did not change hands and the game is over: the move that
+        # arrived was made after the game had already ended.
+        self.assertEqual(room.turn, "white")
+        self.assertEqual(room.status, "finished")
+
+    def test_a_finished_game_holds_its_figures(self):
+        room = self.seat_black()
+
+        self.clock.advance(45)
+        self.registry.leave(self.black)
+        self.clock.advance(300)
+
+        self.assertAlmostEqual(room.time_left(self.clock())["white"],
+                               INITIAL_TIME_SECONDS - 45)
 
 
 class OpponentLookupTest(unittest.TestCase):

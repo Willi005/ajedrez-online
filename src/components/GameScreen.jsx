@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import Avatar from './Avatar.jsx'
 import Board from './Board.jsx'
+import Clock from './Clock.jsx'
+import Logo from './Logo.jsx'
 import Chat from './Chat.jsx'
 import MoveHistory from './MoveHistory.jsx'
 import PromotionPicker from './PromotionPicker.jsx'
@@ -14,26 +16,20 @@ import ResignButton from './ResignButton.jsx'
  * reject an out-of-turn move with NOT_YOUR_TURN, but waiting for that round trip
  * to find out would let the board move under the player's hands first.
  *
- * Three things the maquette puts in the nav are not here. Offering a draw and
- * a rematch would both need a message the protocol does not have — section 4 of
- * the bitácora lists every one of them — and the clocks in the seat rows would
- * need a server that keeps time, which this one deliberately does not: it
- * validates the network and the session and nothing else. The clock's slot is
- * kept, and carries the one thing it was really there to say, which is who is
- * on the move.
+ * Offering a draw and a rematch are the two things the maquette puts in the nav
+ * that are not here: both would need a message the protocol does not have, and
+ * section 4 of the bitácora lists every one of them.
  */
 
-/** A player, their colour, and whether the board is waiting on them. */
-function Seat({ nickname, color, isToMove, isYou }) {
+/** A player, their colour, and what their clock reads. */
+function Seat({ nickname, color, isToMove, isYou, clock }) {
   return (
     <div className={`seat${isToMove ? ' seat--to-move' : ''}`}>
       <Avatar nickname={nickname} color={color} />
       <span className="seat__name">{nickname}</span>
       <span className="tag tag-neutral">{color === 'white' ? 'blancas' : 'negras'}</span>
       {isYou && <span className="tag tag-neutral seat__you">tú</span>}
-      <span className={`seat__turn${isToMove ? ' seat__turn--active' : ''}`}>
-        {isToMove ? 'Mueve' : '—'}
-      </span>
+      <Clock reading={clock} color={color} isToMove={isToMove} />
     </div>
   )
 }
@@ -41,6 +37,7 @@ function Seat({ nickname, color, isToMove, isYou }) {
 export default function GameScreen({
   game,
   room,
+  clock,
   isGameActive,
   statusText,
   chat,
@@ -102,7 +99,10 @@ export default function GameScreen({
   return (
     <div className="match">
       <nav className="nav match__nav">
-        <span className="nav-brand">Gambito</span>
+        <span className="nav-brand">
+          <Logo />
+          Gambito
+        </span>
         <span className="tag tag-neutral match__room tnum">Sala {room.token}</span>
         <span className="match__status" role="status" aria-atomic="true">
           {statusText}
@@ -118,6 +118,7 @@ export default function GameScreen({
             nickname={room.opponent}
             color={opponentColor}
             isToMove={isGameActive && !isMyTurn}
+            clock={clock}
           />
 
           <Board
@@ -130,7 +131,13 @@ export default function GameScreen({
             onSquareClick={handleSquareClick}
           />
 
-          <Seat nickname={room.nickname} color={room.color} isToMove={isMyTurn} isYou />
+          <Seat
+            nickname={room.nickname}
+            color={room.color}
+            isToMove={isMyTurn}
+            isYou
+            clock={clock}
+          />
 
           {isGameActive && state.inCheck && (
             <p className="match__check" role="status" aria-atomic="true">

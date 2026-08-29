@@ -138,6 +138,9 @@
   z-index: 1;
   width: 86%;
   height: 86%;
+  /* Set here rather than on the SVG so a piece drawn away from the board can
+     take a heavier contour without a second set of shapes. */
+  stroke-width: 1.4;
   pointer-events: none;
 }
 

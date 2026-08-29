@@ -6,8 +6,9 @@ import CopyButton from './CopyButton.jsx'
  *
  * `winner` is a colour because that is what the server sends; who won is only
  * meaningful once it is compared with the colour this browser is playing.
- * `checkmate` and `draw` never come from the server — the protocol has no
- * message for them, so each client detects them from its own board.
+ * `checkmate` and `draw` are found by each client on its own board and then
+ * reported to the server, which is what stops its clock; `resign`, `timeout`
+ * and `opponent_left` are the server's alone.
  */
 function describeOutcome({ reason, winner }, myColor) {
   if (reason === 'opponent_left') {
@@ -32,6 +33,15 @@ function describeOutcome({ reason, winner }, myColor) {
       detail: won
         ? 'Jaque mate. El rey rival no tiene salida.'
         : 'Jaque mate. Tu rey no tiene salida.',
+    }
+  }
+
+  if (reason === 'timeout') {
+    return {
+      headline: won ? 'Ganas la partida' : 'Pierdes la partida',
+      detail: won
+        ? 'A tu rival se le acabó el tiempo.'
+        : 'Se te acabó el tiempo.',
     }
   }
 

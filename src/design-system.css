@@ -248,22 +248,33 @@
 
 /* -- tags ------------------------------------------------------------------ */
 
+/* Every tag carries an edge.
+   The system fills them with the 100 step of a ramp, and on this ground that
+   step is all but the page colour itself: neutral-100 on the page is a
+   difference of five values, which on a projector or a laptop at an angle is no
+   difference at all. Drawing the boundary instead of relying on the fill is
+   also what the system says to do everywhere else — "draw with borders, rules
+   and underlines; keep large fills off the page" — so the chips now do it too,
+   with the fill dropped one step for good measure. */
 .tag {
   display: inline-flex;
   align-items: center;
   font-size: 11px;
   letter-spacing: 0.02em;
   padding: 3px 10px;
+  border: 1px solid transparent;
   border-radius: calc(var(--radius-md) * 0.75);
 }
 
 .tag-accent {
+  border-color: var(--color-accent-300);
   background: var(--color-accent-100);
   color: var(--color-accent-800);
 }
 
 .tag-neutral {
-  background: var(--color-neutral-100);
+  border-color: var(--color-neutral-400);
+  background: var(--color-neutral-200);
   color: var(--color-neutral-800);
 }
 
@@ -274,6 +285,7 @@
 
 /* Added, off the danger ramp, for the one state that is not just information. */
 .tag-danger {
+  border-color: var(--color-danger-300);
   background: var(--color-danger-100);
   color: var(--color-danger-800);
 }

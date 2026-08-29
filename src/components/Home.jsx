@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { INITIAL_TIME_SECONDS } from '../lib/clock.js'
 import {
   MAX_NICKNAME_LENGTH,
   TOKEN_LENGTH,
@@ -67,7 +68,10 @@ export default function Home({ nickname, canAct, onCreate, onJoin }) {
           </li>
           <li className="steps__item">
             <span className="steps__numeral">III</span>
-            <span>Tu rival lo pega, entra, y juegan con historial y chat al lado.</span>
+            <span>
+              Tu rival lo pega, entra, y juegan a {INITIAL_TIME_SECONDS / 60} minutos
+              por cabeza, con historial y chat al lado.
+            </span>
           </li>
         </ol>
       </div>
@@ -141,7 +145,7 @@ export default function Home({ nickname, canAct, onCreate, onJoin }) {
 
           <p className="home__fineprint text-muted">
             {canAct
-              ? 'Sin cuenta, sin correo. El token deja de existir cuando termina la partida.'
+              ? `Sin cuenta, sin correo. Partida rápida de ${INITIAL_TIME_SECONDS / 60} minutos por jugador.`
               : 'Sin conexión con el servidor. Revisa la dirección más abajo.'}
           </p>
         </form>

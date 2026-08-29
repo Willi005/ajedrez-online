@@ -113,10 +113,12 @@ export default function Piece({ type, color, className = '' }) {
       aria-hidden="true"
       focusable="false"
     >
+      {/* The stroke width is set in CSS rather than here so a piece drawn away
+          from the board — in the promotion dialog, in the captured list — can
+          be given a heavier contour without a second set of shapes. */}
       <g
         fill="currentColor"
         stroke="var(--piece-stroke)"
-        strokeWidth="1.4"
         strokeLinejoin="round"
         strokeLinecap="round"
       >

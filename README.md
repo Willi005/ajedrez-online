@@ -1,7 +1,8 @@
 # Gambito
 
 Two-player online chess over a raw TCP socket, with an in-game chat. Games are
-paired with a short token — no accounts, no database, nothing persisted.
+paired with a short token — no accounts, no database, nothing persisted. One
+time control: 10 minutes a side, kept by the server.
 
 ## Tech Stack
 
@@ -12,7 +13,8 @@ rather than fetched from a CDN so the app works on a network with no internet.
 
 **Server** — Python 3.10+, standard library only. The RFC 6455 WebSocket
 handshake and frame codec are implemented by hand on top of a plain
-`SOCK_STREAM` socket, so every socket call stays explicit.
+`SOCK_STREAM` socket, so every socket call stays explicit. It also keeps the
+clock: the chess rules can live in the client, but the time cannot.
 
 ## Running the Server
 

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ErrorBanner from './components/ErrorBanner.jsx'
 import GameOver from './components/GameOver.jsx'
 import GameScreen from './components/GameScreen.jsx'
@@ -12,6 +12,7 @@ import {
   SERVER_MESSAGE,
   chatMessage,
   createMessage,
+  gameEndMessage,
   joinMessage,
   moveMessage,
   resignMessage,
@@ -68,6 +69,16 @@ export default function App() {
   const [lastError, setLastError] = useState(null)
   const [messages, setMessages] = useState([])
 
+  // The last thing the server said about the two clocks, stamped with the
+  // moment it arrived so the display can tick on from there. Null until a game
+  // starts.
+  const [clock, setClock] = useState(null)
+
+  // Whether this browser has already told the server that its board reached an
+  // ending. Both clients detect mate at the same instant and both report it;
+  // this only stops one of them saying it twice.
+  const reportedEnd = useRef(false)
+
   // Chat lines need a stable key and the server sends no id, so they are
   // numbered locally. A counter beats an index because the list only ever grows
   // at the end and a ref never triggers a render of its own.
@@ -90,6 +101,8 @@ export default function App() {
     setOutcome(null)
     setOutcomeSeen(false)
     setMessages([])
+    setClock(null)
+    reportedEnd.current = false
     resetGame()
   }, [resetGame])
 
@@ -101,6 +114,8 @@ export default function App() {
           setOutcome(null)
           setOutcomeSeen(false)
           setMessages([])
+          setClock(null)
+          reportedEnd.current = false
           setRoom({
             token: message.token,
             color: message.color,
@@ -115,6 +130,8 @@ export default function App() {
           setOutcome(null)
           setOutcomeSeen(false)
           setMessages([])
+          setClock(null)
+          reportedEnd.current = false
           setRoom({
             token: message.token,
             color: message.color,
@@ -134,6 +151,16 @@ export default function App() {
 
         case SERVER_MESSAGE.CHAT:
           pushMessage({ kind: 'opponent', author: message.from, text: message.text })
+          break
+
+        case SERVER_MESSAGE.CLOCK:
+          setClock({
+            white: message.white,
+            black: message.black,
+            turn: message.turn,
+            running: message.running,
+            at: performance.now(),
+          })
           break
 
         case SERVER_MESSAGE.GAME_OVER:
@@ -182,12 +209,31 @@ export default function App() {
   // It is read straight off the board rather than copied into state: the
   // position already says the game is over, and a second copy of that fact
   // could only ever disagree with it.
-  const localOutcome = boardOutcome(game.state)
+  //
+  // Memoised on the snapshot rather than recomputed loose, so its identity only
+  // changes when the position does — which is what lets the effect below depend
+  // on it and fire once per ending instead of once per render.
+  const localOutcome = useMemo(() => boardOutcome(game.state), [game.state])
 
   // The server's word — a resignation, a rival who vanished — and the board's
   // own verdict. Only one of the two can happen: the board freezes at mate, and
   // a `game_over` locks it before anything else can be played.
-  const effectiveOutcome = outcome ?? localOutcome
+  //
+  // The board's own verdict comes first. With a clock running the two can now
+  // disagree: after mate nobody moves, and if the server had not been told it
+  // would go on charging the mated player and eventually declare them lost on
+  // time. It *is* told — see the effect below — but a `game_over` already in
+  // flight when that word arrives must not overwrite the real result.
+  const effectiveOutcome = localOutcome ?? outcome
+
+  // Tell the server that the position ended. Only checkmate and stalemate go
+  // through here: resigning, leaving and running out of time are all things the
+  // server sees for itself.
+  useEffect(() => {
+    if (!localOutcome || reportedEnd.current) return
+    reportedEnd.current = true
+    send(gameEndMessage(localOutcome.reason, localOutcome.winner))
+  }, [localOutcome, send])
 
   // -- actions --------------------------------------------------------------
 
@@ -283,10 +329,17 @@ export default function App() {
       // which is when the server would answer NO_OPPONENT.
       const canChat = isOpen && effectiveOutcome?.reason !== 'opponent_left'
 
+      // The reading the seats tick from. Freezing it here the instant the board
+      // says the game is over means the figures stop with the game rather than
+      // running on for the round trip it takes the server to agree.
+      const shownClock =
+        clock && effectiveOutcome ? { ...clock, running: false } : clock
+
       return (
         <GameScreen
           game={game}
           room={room}
+          clock={shownClock}
           isGameActive={phase === PHASE.PLAYING && isOpen && !effectiveOutcome}
           statusText={statusText()}
           chat={{ messages, canSend: canChat, onSend: handleChatSend }}

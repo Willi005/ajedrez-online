@@ -201,6 +201,10 @@ en la sección 9). Estos son los archivos que cambiaron de forma o aparecieron:
 | `src/components/Avatar.jsx` | La inicial del jugador en un círculo del color que juega. |
 | `src/components/CopyButton.jsx` | Copiar al portapapeles y decirlo por un momento. Lo usan el token y el PGN. |
 | `src/components/Icon.jsx` | Los cuatro iconos de Lucide que la interfaz necesita, en línea. |
+| `src/components/Logo.jsx` | La marca: el mismo peón del tablero, en un disco negro. |
+| `src/components/Clock.jsx` | El tiempo de un jugador. Se refresca a sí mismo. |
+| `src/hooks/useClock.js` | Descuenta localmente entre las lecturas del servidor. |
+| `src/lib/clock.js` | Formato del reloj y el umbral de tiempo bajo. |
 
 Se eliminaron `src/components/NicknameForm.jsx` y `src/components/Lobby.jsx`:
 la maqueta pide el apodo y la elección de crear o unirse en una sola tarjeta, y
@@ -226,10 +230,10 @@ valida en `server/protocol.py`; el cliente lo construye en `src/lib/protocol.js`
 Transporte: tramas de texto WebSocket, cada una con un objeto JSON. Codificación
 UTF-8. Máximo 4096 bytes por trama.
 
-El bloque 2 dejó implementados `create`, `join` y `move`, y el manejo de
-`created`, `start`, `move`, `game_over`, `opponent_left` y `error`. Quedan sin
-usar `chat` y `resign`, que son del bloque 3; sus constructores ya existen en
-`src/lib/protocol.js`.
+El bloque 2 dejó implementados `create`, `join` y `move`; el bloque 3 añadió
+`chat` y `resign`. El reloj añadió los dos últimos, `game_end` y `clock`, que
+son la única ampliación del contrato posterior al bloque 1 — el porqué está en
+la entrada del reloj en la sección 9.
 
 ### 4.1. Cliente → servidor
 
@@ -240,6 +244,7 @@ usar `chat` y `resign`, que son del bloque 3; sus constructores ya existen en
 | `move` | `from`, `to`, `fen`, `promotion` (opcional) | `promotion` es `null` o una de `q`, `r`, `b`, `n`. |
 | `chat` | `text` | 1 a 200 caracteres tras limpiar caracteres de control. |
 | `resign` | — | Sin campos adicionales. |
+| `game_end` | `reason`, `winner` | El tablero terminó solo. `reason` es `"checkmate"` o `"draw"`; con `"draw"`, `winner` debe ser `null`. Detiene el reloj en el servidor. |
 
 ```json
 {"type": "create", "nickname": "ana"}
@@ -247,7 +252,15 @@ usar `chat` y `resign`, que son del bloque 3; sus constructores ya existen en
 {"type": "move",   "from": "e2", "to": "e4", "promotion": null, "fen": "rnbq..."}
 {"type": "chat",   "text": "buena jugada"}
 {"type": "resign"}
+{"type": "game_end", "reason": "checkmate", "winner": "white"}
 ```
+
+`game_end` es el único mensaje en el que el servidor acepta la palabra del
+cliente sobre la partida, y lo hace acotado: solo admite los dos finales que
+únicamente el cliente puede ver, rechaza `"resign"` y `"timeout"` —que son
+suyos— e ignora el mensaje si la sala ya terminó, porque los dos jugadores lo
+envían a la vez. Es el mismo trato que la decisión 2.3 ya había hecho: las
+reglas viven en el navegador.
 
 ### 4.2. Servidor → cliente
 
@@ -257,7 +270,8 @@ usar `chat` y `resign`, que son del bloque 3; sus constructores ya existen en
 | `start` | `token`, `color`, `nickname`, `opponent` | A **ambos** jugadores cuando el segundo se une. |
 | `move` | `from`, `to`, `promotion`, `fen` | Retransmisión al rival. Idéntico al que envió el otro. |
 | `chat` | `from`, `text` | `from` es el apodo del emisor. |
-| `game_over` | `reason`, `winner` | `reason` es `"resign"`. `winner` es `"white"` o `"black"`. |
+| `clock` | `white`, `black`, `turn`, `running` | Los dos relojes en segundos, quién los consume y si corren. Se envía al empezar, tras cada jugada y al terminar. |
+| `game_over` | `reason`, `winner` | `reason` es `"resign"`, `"timeout"`, `"checkmate"` o `"draw"`. `winner` es `"white"`, `"black"` o `null` en tablas. |
 | `opponent_left` | — | El rival cerró la conexión o se cayó. |
 | `error` | `code`, `message` | Ante cualquier rechazo. `message` está en español. |
 
@@ -266,7 +280,8 @@ usar `chat` y `resign`, que son del bloque 3; sus constructores ya existen en
 {"type": "start",         "token": "7QK2P", "color": "black", "nickname": "beto", "opponent": "ana"}
 {"type": "move",          "from": "e2", "to": "e4", "promotion": null, "fen": "rnbq..."}
 {"type": "chat",          "from": "ana", "text": "buena jugada"}
-{"type": "game_over",     "reason": "resign", "winner": "black"}
+{"type": "clock",         "white": 597.4, "black": 600.0, "turn": "black", "running": true}
+{"type": "game_over",     "reason": "timeout", "winner": "black"}
 {"type": "opponent_left"}
 {"type": "error",         "code": "NOT_YOUR_TURN", "message": "No es tu turno."}
 ```
@@ -294,6 +309,8 @@ causa, sin tener que interpretar el texto.
 | `NOT_IN_ROOM` | La conexión intentó jugar o chatear sin estar en una sala. |
 | `GAME_NOT_STARTED` | Se intentó mover antes de que llegara el rival. |
 | `NOT_YOUR_TURN` | Un jugador intentó mover en el turno del otro. |
+| `INVALID_REASON` | `game_end` con un motivo que el cliente no puede decidir (`resign`, `timeout`). |
+| `INVALID_WINNER` | `game_end` con unas tablas que declaran ganador, o un mate sin él. |
 | `NO_OPPONENT` | Se intentó chatear antes de que llegara el rival. |
 
 Los quince primeros los levanta `server/protocol.py` al validar el mensaje;
@@ -900,6 +917,94 @@ fin con «4 jugadas», peón capturado en la lista de capturas y ventaja `+1`.
 Error `ROOM_FULL` provocado de verdad con un tercer jugador. Sin desbordamiento
 horizontal a 413px ni a 803px.
 
+### 29 de agosto de 2026 — Reloj de 10 minutos, y cinco arreglos de la maqueta
+
+**El reloj**, que es la primera ampliación del contrato desde el bloque 1. Un
+solo modo de juego: partida rápida de **10 minutos por jugador, sin
+incremento**.
+
+- **Decisión: el reloj vive en el servidor.** Es la única parte de una partida
+  que un jugador no puede decidir por su cuenta. Las reglas sí pueden quedarse
+  en el cliente —la decisión 2.3— porque un cliente que mienta sobre ellas solo
+  rompe su propio tablero: el rival valida la misma posición y no le sigue. Un
+  cliente que mienta sobre el reloj le roba tiempo a otro, y eso no se corrige
+  solo. `INITIAL_TIME_SECONDS` está en `server/rooms.py`.
+- **El reloj arranca cuando se sienta el segundo jugador**, no cuando se crea la
+  sala: el anfitrión no debe perder tiempo esperando a un rival.
+- **Solo se cobra al que tiene el turno.** `Room` guarda los segundos de cada
+  bando y el instante en que el que mueve empezó a pensar; jugar cobra lo
+  transcurrido y pasa el cronómetro al otro.
+- **No se envía un mensaje por segundo.** Una cuenta atrás es perfectamente
+  predecible, así que lo único que vale la pena poner en el cable es el momento
+  en que cambia: el servidor manda una lectura `clock` al empezar, tras cada
+  jugada y al terminar, y los clientes descuentan solos entre una y otra. Como
+  la lectura se sella con la hora en que **llega al navegador**, la pantalla va
+  por detrás del servidor un salto de red — que es el sentido correcto: puede
+  enseñar a un jugador un poco más de tiempo del que tiene, nunca menos.
+- **Una partida puede terminar sin que nadie envíe nada**, que es justo el
+  sentido de un reloj, así que alguien tiene que mirar: un hilo barrendero en
+  `server.py` recorre las salas cada 0,2 s y cierra las que se quedaron sin
+  tiempo. Una jugada y el barrendero pueden llegar a la vez a una sala cuya
+  bandera acaba de caer; los dos pasan por el mismo lock, así que decide el
+  primero y el segundo encuentra la partida ya terminada.
+
+**Un problema que el reloj creó y hubo que cerrar.** Tras un jaque mate nadie
+mueve. El servidor no sabe qué es un mate —no conoce las reglas— así que habría
+seguido descontando y, al cabo de diez minutos, habría declarado ganador **al
+jugador que estaba mateado**. De ahí el mensaje `game_end`: el cliente, que sí
+ve el final, se lo dice al servidor para que pare el reloj. Está acotado a
+propósito —solo admite `checkmate` y `draw`, rechaza `resign` y `timeout`, que
+son del servidor, e ignora el segundo aviso porque los dos clientes lo mandan a
+la vez— y el cliente da preferencia al veredicto de su propio tablero sobre un
+`game_over` que ya viniera en camino.
+
+**Cinco arreglos pedidos sobre la maqueta ya implementada:**
+
+- **Las etiquetas no se veían.** El sistema las rellena con el paso 100 de una
+  rampa, y sobre este fondo ese paso es prácticamente el color de la página:
+  `neutral-100` contra la página son cinco valores de diferencia, que en un
+  proyector no son ninguna. Ahora todas llevan borde y el relleno baja un paso.
+  Dibujar el límite en vez de fiarlo al relleno es además lo que el sistema dice
+  que hay que hacer en todo lo demás: «draw with borders, rules and underlines».
+- **La inicial no estaba centrada en su círculo.** `place-items: center` centra
+  la caja de línea, y una caja de línea no es la letra: llega hasta el descenso,
+  que una mayúscula nunca usa, así que el glifo queda por encima del medio. La
+  cifra se midió en vez de tantearla —en Cormorant todas las mayúsculas tienen
+  la misma altura y ningún descenso, así que su centro de tinta cae exactamente
+  a 0,0357 em por encima— y el relleno superior corrige el doble de eso, porque
+  a un contenido centrado el relleno lo mueve la mitad. Comprobado después: el
+  error queda en 0,003 px. El mismo método corrige el peón del logo, que
+  tampoco está centrado en su propia caja de 45 unidades porque está dibujado
+  para apoyarse en una casilla.
+- **El logo.** Un peón en un disco negro, junto al nombre en la barra. Es el
+  mismo peón del tablero, no un segundo dibujo, así que la marca y el juego no
+  pueden separarse. El favicon es el mismo.
+- **Las piezas fuera del tablero tenían un plato blanco detrás.** Un cuadrado de
+  color de casilla bajo cada pieza en el diálogo de coronación y en las
+  capturadas se leía como una baldosa pegada a la página, y estaba resolviendo
+  un problema que el dibujo ya resuelve: fuera del tablero una pieza la sostiene
+  su contorno, que es para lo que está el contorno. El plato se fue y el trazo
+  se engrosó donde hace falta, para lo cual el ancho de trazo pasó del atributo
+  del SVG a CSS.
+- **El indicador «Mueve» lo sustituye el reloj**, que es lo que la maqueta tenía
+  en ese hueco desde el principio.
+
+**Verificación.** 108 pruebas del servidor, de las que 15 son nuevas y sobre el
+reloj: que solo se cobre al que mueve, que el tiempo no baje de cero, que la
+sala en espera no consuma, que el barrendero encuentre la bandera caída y no la
+informe dos veces, que una jugada posterior a la caída no se aplique, y que la
+partida terminada congele sus cifras. El reloj se inyecta en `RoomRegistry` y en
+`ChessServer`, así que la caída de bandera se prueba **sobre sockets reales** en
+milisegundos en vez de saltarse el único camino que ningún mensaje dispara.
+
+En el navegador, con dos jugadores contra el servidor real: los dos relojes
+arrancan en 10:00, el turno los alterna correctamente y las dos pantallas
+coinciden cifra a cifra. La caída de bandera se probó de verdad levantando el
+mismo servidor con un reloj de 20 segundos y apuntando el cliente ahí desde su
+propia pantalla de ajustes: sin que nadie moviera, el reloj bajó a 0:00 y los
+dos navegadores recibieron el final, «Pierdes la partida / Se te acabó el
+tiempo» y «Ganas la partida».
+
 ---
 
 ## 10. Convenciones del repositorio
@@ -908,7 +1013,8 @@ horizontal a 413px ni a 803px.
   bloque. El bloque 1 se desarrolló en `feature/socket-server`; el bloque 2, en
   `feature/react-client`; el bloque 3, en `feature/chat-and-polish`. El rediseño
   posterior sobre la maqueta Gambito va en `feature/gambito-design`, que sale de
-  `feature/chat-and-polish` y por tanto se integra después de ella.
+  `feature/chat-and-polish` y por tanto se integra después de ella. El reloj y
+  los arreglos de detalle continúan en esa misma rama.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`,
   `test:`), en inglés.
 - **Código:** en inglés, incluidos nombres y comentarios.

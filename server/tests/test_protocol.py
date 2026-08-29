@@ -216,5 +216,52 @@ class ResignMessageTest(unittest.TestCase):
         self.assertEqual(message, {"type": "resign"})
 
 
+class GameEndTest(unittest.TestCase):
+    def test_accepts_a_checkmate_with_a_winner(self):
+        message = validate_client_message(
+            json.dumps({"type": "game_end", "reason": "checkmate", "winner": "white"})
+        )
+
+        self.assertEqual(message["reason"], "checkmate")
+        self.assertEqual(message["winner"], "white")
+
+    def test_accepts_a_draw_with_no_winner(self):
+        message = validate_client_message(
+            json.dumps({"type": "game_end", "reason": "draw", "winner": None})
+        )
+
+        self.assertEqual(message["reason"], "draw")
+        self.assertIsNone(message["winner"])
+
+    def test_rejects_a_reason_the_client_cannot_decide(self):
+        # Resigning and running out of time are the server's to declare, so a
+        # client must not be able to report them as a board result.
+        for reason in ("resign", "timeout", "victory", ""):
+            with self.subTest(reason=reason):
+                with self.assertRaises(ValidationError) as ctx:
+                    validate_client_message(
+                        json.dumps(
+                            {"type": "game_end", "reason": reason, "winner": "white"}
+                        )
+                    )
+                self.assertEqual(ctx.exception.code, "INVALID_REASON")
+
+    def test_rejects_a_draw_that_claims_a_winner(self):
+        with self.assertRaises(ValidationError) as ctx:
+            validate_client_message(
+                json.dumps({"type": "game_end", "reason": "draw", "winner": "white"})
+            )
+
+        self.assertEqual(ctx.exception.code, "INVALID_WINNER")
+
+    def test_rejects_a_checkmate_with_no_winner(self):
+        with self.assertRaises(ValidationError) as ctx:
+            validate_client_message(
+                json.dumps({"type": "game_end", "reason": "checkmate", "winner": None})
+            )
+
+        self.assertEqual(ctx.exception.code, "INVALID_WINNER")
+
+
 if __name__ == "__main__":
     unittest.main()

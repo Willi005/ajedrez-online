@@ -44,6 +44,10 @@ const RECOVERY = {
     title: 'La partida aún no empieza',
     hint: 'Falta que tu rival se una con el token.',
   },
+  INVALID_REASON: {
+    title: 'El servidor rechazó el final de la partida',
+    hint: 'Solo el jaque mate y las tablas se informan desde el tablero.',
+  },
   DISCONNECTED: {
     title: 'Se perdió la conexión con el servidor',
     hint: 'Se reintenta sola. Si no vuelve, revisa la dirección del servidor más abajo.',

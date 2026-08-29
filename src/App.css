@@ -351,6 +351,38 @@
   letter-spacing: 0.06em;
 }
 
+/* The mark sits with the wordmark, not apart from it, so the nav opens with one
+   object rather than two. */
+.nav-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-neutral-900);
+}
+
+.logo .piece {
+  width: 68%;
+  height: 68%;
+  /* The pawn is not centred in its own 45-unit box — it is drawn to stand on a
+     square, so its ink runs 5.5 to 37.4 and its centre sits 1.05 units high.
+     That fraction of the box, put back. */
+  transform: translateY(2.33%);
+  color: var(--color-neutral-100);
+  /* Matching the disc, so the contour reads as the edge of the shape rather
+     than as a line drawn around it. */
+  --piece-stroke: var(--color-neutral-900);
+  --piece-detail: var(--color-neutral-900);
+}
+
 .match__status {
   font-size: 13px;
 }
@@ -412,23 +444,42 @@
   letter-spacing: 0.04em;
 }
 
-/* Where the maquette put a clock. There is no clock — the server keeps no time
-   and the protocol carries none — but the slot was there to say who the board
-   is waiting on, and that it can say honestly. */
-.seat__turn {
+/* The clock, in the maquette's own box: a bordered chip at the far edge of the
+   seat, tinted while it is the one running. Tabular figures, so the row does
+   not twitch every second as the digits change width. */
+.clock {
   margin-left: auto;
   padding: 2px 14px;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-divider);
   border-radius: var(--radius-md);
+  background: transparent;
   font-family: var(--font-heading);
-  font-size: 15px;
-  color: color-mix(in srgb, var(--color-text) 65%, transparent);
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  transition:
+    background-color var(--duration, 180ms) ease,
+    border-color var(--duration, 180ms) ease,
+    color var(--duration, 180ms) ease;
 }
 
-.seat__turn--active {
-  border-color: var(--color-divider);
+.clock--running {
   background: var(--color-accent-100);
-  color: var(--color-accent-800);
+}
+
+/* Half a minute left. The colour is the warning; the figure is already there. */
+.clock--low {
+  border-color: var(--color-danger-300);
+  color: var(--color-danger-700);
+}
+
+.clock--running.clock--low {
+  background: var(--color-danger-100);
+}
+
+/* Before a game starts there is nothing to count. */
+.clock--idle {
+  color: color-mix(in srgb, var(--color-text) 65%, transparent);
 }
 
 .resign-confirm {
@@ -444,6 +495,15 @@
 
 /* -- avatars --------------------------------------------------------------- */
 
+/* `place-items: center` centres the line box, and a line box is not the letter:
+   it reaches down to a descender that a capital never uses, so the glyph ends
+   up above the middle of the disc. `line-height: 1` takes out the slack and the
+   padding pushes the letter back down by the rest.
+
+   The figure is measured, not guessed: in Cormorant every capital has the same
+   cap height and no descent, so its ink centre sits exactly 0.0357em above the
+   line box's, and padding moves centred content by half of what it adds — hence
+   twice that. One number covers every initial. */
 .avatar {
   display: grid;
   place-items: center;
@@ -451,11 +511,13 @@
   border-radius: 50%;
   font-family: var(--font-heading);
   font-weight: var(--font-heading-weight);
+  line-height: 1;
 }
 
 .avatar--md {
   width: 30px;
   height: 30px;
+  padding-top: 0.071em;
   font-size: 14px;
 }
 
@@ -590,11 +652,12 @@
   min-width: 0;
 }
 
-/* Off the board there is no square behind them, so the contour is the only
-   thing holding a white piece against the page. */
+/* Off the board the contour is the only thing holding a white piece against the
+   page, and at 18px a hairline is not enough of one. */
 .piece--taken {
   width: 18px;
   height: 18px;
+  stroke-width: 2.2;
 }
 
 .captured__edge {
@@ -721,14 +784,15 @@
   min-width: 72px;
 }
 
-/* Away from the board a white piece would have nothing behind it, so each
-   option carries a square of board with it. */
+/* No plate behind them. A square of board colour under each piece read as a
+   white tile stuck on the page — and it was solving a problem the drawing
+   already solves: away from the board a piece is carried by its contour, which
+   is what the contour is for. Heavier here than on the board, because there is
+   no square of colour behind it doing half the work. */
 .promotion__option .piece {
   width: 42px;
   height: 42px;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  background: var(--board-light);
+  stroke-width: 1.6;
 }
 
 .promotion__name {

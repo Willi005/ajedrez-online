@@ -1,3 +1,4 @@
+import { INITIAL_TIME_SECONDS } from '../lib/clock.js'
 import CopyButton from './CopyButton.jsx'
 
 /**
@@ -38,7 +39,9 @@ export default function WaitingRoom({ token, onCancel }) {
         <p className="waiting" role="status">
           <span className="pulse-dot" aria-hidden="true" />
           <span>Esperando a que tu rival se una…</span>
-          <span className="tag tag-neutral waiting__side">Juegas con blancas</span>
+          <span className="tag tag-neutral waiting__side">
+            Blancas · {INITIAL_TIME_SECONDS / 60} min
+          </span>
         </p>
 
         <button type="button" className="btn btn-secondary btn-block" onClick={onCancel}>
