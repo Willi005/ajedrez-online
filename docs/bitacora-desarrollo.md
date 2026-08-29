@@ -602,6 +602,48 @@ inglés; los textos que ve el usuario, en español.
   única forma de salir de una sala. Está anotado en la sección 7; no se tocó el
   servidor por ello.
 
+### 29 de agosto de 2026 — Bloque 3, segunda iteración estética
+
+Con la aplicación ya funcionando se rehízo la estética. La primera versión era
+correcta pero anónima: gris azulado y todo metido en tarjetas.
+
+- **Decisión: papel y tinta, no gris.** El verde de fieltro y el ámbar se
+  quedan —son lo que ata la página al tablero— pero el resto pasa a marfil
+  cálido en claro y a tinta cálida en oscuro. La referencia es un libro de
+  ajedrez impreso.
+- **Decisión: filetes en vez de tarjetas.** Las secciones se separan con una
+  línea. La tarjeta se conserva solo donde algo está de verdad **al lado** del
+  tablero y hay que distinguirlo de él: el chat y la tarjeta de fin de partida.
+  Junto a un tablero, que ya es un objeto denso, una página de cajas compite.
+- **Decisión: dos familias del sistema.** Serif para lo que se lee (títulos,
+  el token, los nombres de los jugadores) y sans para lo que se opera (botones,
+  campos, chat). Las etiquetas de sección —`CREAR UNA PARTIDA`, `CHAT`— siguen
+  en sans y en versalita espaciada, porque nombran un control y no encabezan
+  algo que se lea. Las dos familias son las del sistema: sin internet en la sala
+  no hay fuente de CDN que valga.
+- **Decisión: el token como placa de imprenta.** Serif grande, interletrado
+  ancho y filete doble arriba y abajo. Sin separadores entre los caracteres a
+  propósito: seleccionarlo sigue copiando exactamente los cinco que el rival
+  tiene que teclear.
+- **El contraste se midió, no se estimó.** Con la fórmula de luminancia relativa
+  de WCAG sobre cada par de la paleta. El verde anterior, `#15803D`, daba
+  **4.44:1** sobre el marfil nuevo: por debajo del mínimo de 4.5. Se bajó a
+  `#14702F` (5.5:1) y el ámbar a `#9A4708` (5.7:1). Todos los pares de texto
+  pasan de 4.5:1 en los dos temas; los apagados rondan 6:1.
+- **Problema encontrado: el marco del tablero desaparecía en modo oscuro.** Se
+  dibujó como filete doble del color de la tinta, y en oscuro «tinta» se había
+  puesto casi negro sobre un fondo casi negro. El marco necesita contraste
+  contra la página, no seguir al texto: en oscuro es una línea cálida clara.
+  El segundo filete se dibuja con `box-shadow` y no con `outline`, para que no
+  participe del layout y el tablero pueda ocupar el ancho completo en una
+  pantalla estrecha.
+- **Problema encontrado: el filete de la cabecera cambiaba de ancho.** `.app` es
+  un elemento flex que se ajusta a su contenido, así que la regla del encabezado
+  mide lo que mida lo de abajo. Está bien —queda alineada con el contenido en
+  todas las vistas— salvo que aparecía un aviso de error más ancho que el
+  formulario y la regla daba un salto. El aviso se limitó a la misma medida que
+  los formularios.
+
 ---
 
 ## 10. Convenciones del repositorio
