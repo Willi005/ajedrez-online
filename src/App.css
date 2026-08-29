@@ -2,14 +2,11 @@
  * Layout and components.
  *
  * Colours, spacing and radii all come from the tokens in index.css; nothing
- * here names a raw value that a theme would need to change.
+ * here names a raw value.
  *
- * Two kinds of container, and the difference is deliberate. `.sheet` and
- * `.section` are plain blocks separated by rules — they hold one thing the
- * player reads at a time, and a box around them would be noise. A card with a
- * border and a background is kept for the two places where something really
- * does sit beside the board and has to be told apart from it: the chat and the
- * end-of-game card.
+ * The page is slate and the content is white, so a card separates itself from
+ * the page by being white at all: `.card` is the one container, used for every
+ * block that holds something the player acts on.
  */
 
 .app {
@@ -25,28 +22,24 @@
 
 /* -- header ---------------------------------------------------------------- */
 
-/* A masthead. `.app` is a flex item that sizes to its content, so this rule
-   ends up exactly as wide as whatever is below it: the width of a form on the
-   lobby screens, the width of the board and chat during a game. */
+/* No rule under the masthead any more: on slate the type carries it on its
+   own, and a hairline only made the page quieter. */
 .brand {
-  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-3);
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--border);
 }
 
-/* The knight from the board, re-tinted in ink so it reads as part of the
-   masthead lettering rather than as a badge stuck next to it. Its own colours
-   are meant for a green square and would disappear against the paper. */
+/* The knight from the board, re-tinted so it reads as part of the masthead
+   lettering rather than as a badge stuck next to it. Its own colours are meant
+   for a board square and would not hold here. */
 .brand__mark {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2rem;
+  height: 2rem;
   color: var(--foreground);
   --piece-stroke: var(--foreground);
-  --piece-detail: var(--background);
+  --piece-detail: var(--surface);
 }
 
 .app__content {
@@ -59,7 +52,7 @@
 
 /* The forms are read one at a time and should not stretch across the page;
    the board layout sets its own width. */
-.app__content > .sheet,
+.app__content > .card,
 .app__content > .lobby {
   max-width: 27rem;
 }
@@ -67,16 +60,15 @@
 /* -- blocks ---------------------------------------------------------------- */
 
 /* The screens that are a single narrow column — nickname, lobby, waiting room
-   — are set centred, like the title page of a book: there is one thing to read
-   at a time and nothing to align against. The board views are deliberately left
-   out of this. Everything there lines up with the board, and the seats have to
-   stay at its edges. */
-.sheet,
+   — are set centred: there is one thing to do at a time and nothing to align
+   against. The board views are deliberately left out of this. Everything there
+   lines up with the board, and the seats have to stay at its edges. */
+.card,
 .lobby {
   text-align: center;
 }
 
-.sheet .row,
+.card .row,
 .lobby .row {
   justify-content: center;
 }
@@ -84,38 +76,28 @@
 /* A field does not inherit the alignment, and on these screens each one holds a
    single short value that reads better centred. The server address, which is
    long and lives outside these blocks, stays left. */
-.sheet input,
+.card input,
 .lobby input {
   text-align: center;
 }
 
-/* One block of content, no box. */
-.sheet {
+/* The one container. White on a slate page is what makes it a card; the border
+   is there for the edge, not to do the separating. */
+.card {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
-/* A block that follows another one, told apart by a rule instead of a border. */
-.section {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding-top: var(--space-5);
-  border-top: 1px solid var(--border);
-}
-
-.section:first-child {
-  padding-top: 0;
-  border-top: none;
-}
-
-/* Names a control rather than heading something to be read, so it stays in the
-   sans and is set as a tracked label. */
+/* Names a control rather than heading something to be read, so it is set as a
+   tracked label instead of as a heading. */
 .section__title {
-  font-family: var(--font-sans);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.09em;
@@ -174,7 +156,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .lobby form {
@@ -193,19 +175,18 @@
   text-transform: uppercase;
 }
 
-/* The token, set like a plate in a printed book: the serif, wide tracking, and
-   a double rule above and below. The characters are not separated by any real
-   punctuation, so selecting the token still copies exactly the five characters
-   the other player has to type. */
+/* The token is the one thing on the page that gets read out loud across a
+   room, so it is the heaviest thing on it: the only dark surface in the design.
+   The characters carry no separator, so selecting it still copies exactly the
+   five the other player has to type. */
 .token-display {
-  margin: var(--space-2) 0;
-  padding: var(--space-4) 0 var(--space-4) 0.3em;
-  border-top: 3px double var(--border-strong);
-  border-bottom: 3px double var(--border-strong);
-  font-family: var(--font-serif);
-  font-size: 2.75rem;
-  font-weight: 600;
-  letter-spacing: 0.3em;
+  padding: var(--space-4) 0 var(--space-4) 0.24em;
+  border-radius: var(--radius-md);
+  background: var(--plate);
+  color: var(--on-plate);
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
   line-height: 1.1;
   text-align: center;
   text-transform: uppercase;
@@ -275,15 +256,25 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  min-height: 2.5rem;
-  padding: 0 var(--space-2);
-  border-left: 3px solid transparent;
-  transition: border-color var(--duration) var(--ease);
+  min-height: 3rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  transition:
+    background-color var(--duration) var(--ease),
+    border-color var(--duration) var(--ease);
 }
 
-/* Whose move it is, said with position rather than with a word. */
+/* Whose move it is. The border stays the same width in both states so the
+   board never shifts when the turn changes. */
 .seat--to-move {
-  border-left-color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.seat--to-move .seat__name {
+  color: var(--primary);
 }
 
 .seat__color {
@@ -303,9 +294,8 @@
 
 .seat__name {
   min-width: 0;
-  font-family: var(--font-serif);
   font-size: 1.0625rem;
-  font-weight: 600;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -400,8 +390,9 @@
   padding: var(--space-4);
   border: 1px solid var(--border);
   border-left: 4px solid var(--muted);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .game-over--win {
@@ -444,7 +435,7 @@
   gap: var(--space-3);
   padding: var(--space-4);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-card);
 }
@@ -550,9 +541,8 @@
 }
 
 .banner__title {
-  font-family: var(--font-serif);
   font-size: 1.0625rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .banner__hint,
@@ -582,8 +572,10 @@
 .server-settings {
   width: 100%;
   margin-top: auto;
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
   font-size: 0.875rem;
 }
 

@@ -654,6 +654,57 @@ correcta pero anónima: gris azulado y todo metido en tarjetas.
   formulario y la regla daba un salto. El aviso se limitó a la misma medida que
   los formularios.
 
+### 29 de agosto de 2026 — Bloque 3, tercera iteración estética (definitiva)
+
+La segunda iteración quedó correcta pero apagada: demasiado sobria y con una
+paleta —marfil y verde— que no convencía. Se rehízo por tercera y última vez
+con tres decisiones tomadas a partir de eso.
+
+- **Decisión: un solo tema, el claro.** Se eliminó el bloque
+  `prefers-color-scheme: dark` entero. La aplicación se muestra en una sala de
+  clases, en máquinas cuyo tema nadie controla, y un aspecto que se sabe
+  revisado vale más que dos revisados a medias.
+- **Decisión: la página es slate y el contenido es blanco.** De ahí sale la
+  presencia que faltaba. Antes las tarjetas eran de un blanco roto sobre un
+  fondo marfil y no se separaban de nada; ahora `.card` es blanco sobre
+  `#F1F5F9` y se recorta solo, sin necesitar un borde pesado. `.card` es además
+  el único contenedor: se acabaron `.sheet` y `.section`.
+- **Decisión: azul, no verde.** Primario `#1D4ED8` y tablero en el azul-gris
+  clásico (`#DEE3E6` / `#8CA2AD`). El anillo de selección y el resaltado de la
+  última jugada se quedan en ámbar, que es el complementario del azul y por eso
+  se ve de inmediato sobre las dos casillas.
+- **Decisión: fuera el serif; la jerarquía la dan el peso y el tamaño.** Una
+  sola familia, la del sistema, con títulos a 700 y tracking cerrado.
+- **Decisión: el token es la única superficie oscura de la página.** Placa
+  `#1E293B` con el texto en blanco (14.6:1). Es lo que alguien lee en voz alta
+  al otro lado de una sala, así que es lo más pesado de la pantalla.
+- **Decisión: el asiento de quien tiene el turno es una tarjeta teñida**, no una
+  barra de 3 px. El borde mide lo mismo en los dos estados para que el tablero
+  no se mueva al cambiar el turno.
+- **Contrastes medidos** (fórmula de luminancia relativa de WCAG, sobre el fondo
+  `#F1F5F9`): texto `#0F172A` 16.3:1 · apagado `#475569` 6.9:1 · primario
+  `#1D4ED8` 6.1:1 · acento `#9A3412` 6.7:1 · peligro `#B91C1C` 5.9:1 · blanco
+  sobre el primario 6.7:1 · blanco sobre la placa 14.6:1. Todos por encima de
+  4.5:1.
+
+**Las piezas, rehechas en Staunton.** Las seis se redibujaron con la estructura
+del set real: pie ancho, plinto, trompeta, y encima la parte que da nombre a la
+pieza. El peón es el único con el pie más estrecho, como en un tablero de
+verdad.
+
+- **Problema encontrado: el caballo parecía un pájaro.** El primer intento
+  trazaba la cara como una diagonal larga desde la frente hasta un morro en
+  punta, sin mandíbula. Se redibujó recorriendo la silueta en orden —oreja,
+  nuca, cuerpo, base, pecho, garganta, mandíbula, mentón, caña de la nariz,
+  frente— y son la mandíbula y el morro romo los que hacen que se lea como un
+  caballo. La crin va como trazo de detalle y el ojo como un círculo.
+- **El contorno de las piezas es estructural, no decorativo.** Una pieza blanca
+  mide **1.2:1** contra una casilla clara: sin el contorno oscuro sencillamente
+  desaparecería. La negra sobre casilla clara da 11.4:1 y la blanca sobre
+  casilla oscura, 2.5:1 más el contorno. Es el mismo juego de formas el que
+  tiene que leerse sobre los dos colores de casilla, y eso lo resuelve el
+  contorno.
+
 ---
 
 ## 10. Convenciones del repositorio

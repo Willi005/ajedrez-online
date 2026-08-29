@@ -12,16 +12,11 @@
   width: min(76vmin, 560px);
   max-width: 100%;
   aspect-ratio: 1;
-  border: 1px solid var(--board-frame);
-  border-radius: 0;
+  border: 2px solid var(--board-frame);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   user-select: none;
-  /* The second rule of the frame, drawn with a gap of page behind it. A shadow
-     rather than an outline because it must never take part in layout: the board
-     is allowed to reach the full width of a narrow screen. */
-  box-shadow:
-    0 0 0 3px var(--background),
-    0 0 0 4px var(--board-frame);
+  box-shadow: var(--shadow-card);
 }
 
 .board__row {

@@ -17,7 +17,7 @@ export default function NicknameForm({ initialValue = '', onSubmit }) {
   }
 
   return (
-    <form className="sheet" onSubmit={handleSubmit}>
+    <form className="card" onSubmit={handleSubmit}>
       <h2>¿Cómo te llamas?</h2>
       <p className="hint">
         Tu apodo se guarda en este navegador. Podrás cambiarlo más adelante.
@@ -33,7 +33,7 @@ export default function NicknameForm({ initialValue = '', onSubmit }) {
         placeholder="hasta 16 caracteres"
         onChange={(event) => setValue(event.target.value)}
       />
-      <button type="submit" disabled={!canSubmit}>
+      <button type="submit" className="button--primary" disabled={!canSubmit}>
         Continuar
       </button>
     </form>

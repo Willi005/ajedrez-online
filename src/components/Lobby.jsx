@@ -25,18 +25,18 @@ export default function Lobby({ nickname, canAct, onCreate, onJoin, onChangeNick
         </button>
       </p>
 
-      <section className="section">
+      <section className="card">
         <h2 className="section__title">Crear una partida</h2>
         <p className="hint">
           Obtendrás un token de {TOKEN_LENGTH} caracteres para pasarle a tu rival.
           Juegas con blancas.
         </p>
-        <button type="button" disabled={!canAct} onClick={onCreate}>
+        <button type="button" className="button--primary" disabled={!canAct} onClick={onCreate}>
           Crear partida
         </button>
       </section>
 
-      <section className="section">
+      <section className="card">
         <h2 className="section__title">Unirse a una partida</h2>
         <form onSubmit={handleJoin}>
           <label htmlFor="token">Token de la partida</label>
@@ -51,7 +51,7 @@ export default function Lobby({ nickname, canAct, onCreate, onJoin, onChangeNick
             className="token-input"
             onChange={(event) => setToken(event.target.value.toUpperCase())}
           />
-          <button type="submit" disabled={!canJoin}>
+          <button type="submit" className="button--primary" disabled={!canJoin}>
             Unirse
           </button>
         </form>

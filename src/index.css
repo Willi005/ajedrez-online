@@ -1,23 +1,24 @@
 /*
  * Design tokens and element defaults.
  *
- * The look is that of a printed chess book: warm paper, ink, a serif for the
- * things that are read and a sans for the things that are operated. Sections
- * are separated by rules rather than boxed into cards, which is what keeps the
- * page quiet next to a board that is already busy.
+ * Light only, by decision: the app is shown in a classroom on machines whose
+ * theme nobody controls, and one look that is known to be right beats two that
+ * are only half checked.
  *
- * Everything visual goes through a token. Light is the default and dark is a
- * single block of overrides driven by `prefers-color-scheme`, which is why no
- * component below ever names a raw colour. Every text pair here clears 4.5:1
- * against its own background in both themes.
+ * The page sits on slate and the content sits on white, so every card separates
+ * itself from the page without needing a heavy border. Hierarchy is carried by
+ * weight and size in a single sans family rather than by switching typeface.
  *
- * Both type stacks are the system ones on purpose: the app has to run on a LAN
- * with no internet — that is the whole point of the exercise — and a webfont
- * from a CDN would fail exactly during the demo.
+ * Everything visual goes through a token; no component below names a raw
+ * colour. Every text pair here clears 4.5:1 against its own background — the
+ * figures are in section 9 of docs/bitacora-desarrollo.md.
+ *
+ * The type stack is the system one on purpose: the app has to run on a LAN with
+ * no internet — that is the whole point of the exercise — and a webfont from a
+ * CDN would fail exactly during the demo.
  */
 
 :root {
-  --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, ui-serif, serif;
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
@@ -30,87 +31,58 @@
   --space-6: 2rem;
   --space-7: 3rem;
 
-  --radius-sm: 3px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
   --radius-pill: 999px;
 
-  --background: #f4f1e8;
-  --surface: #fbf9f3;
-  --surface-sunken: #ece7d9;
-  --foreground: #1f1c17;
-  --muted: #5f5a50;
-  --border: #ddd6c6;
-  --border-strong: #c2b9a3;
+  --background: #f1f5f9;
+  --surface: #ffffff;
+  --surface-sunken: #e9eef5;
+  --foreground: #0f172a;
+  --muted: #475569;
+  --border: #cbd5e1;
+  --border-strong: #94a3b8;
 
-  --primary: #14702f;
-  --primary-hover: #0f5623;
+  --primary: #1d4ed8;
+  --primary-hover: #1e40af;
   --on-primary: #ffffff;
-  --primary-soft: #e3ecdd;
+  --primary-soft: #dbeafe;
 
-  --accent: #9a4708;
-  --accent-soft: #f7ebd8;
+  --accent: #9a3412;
+  --accent-soft: #ffedd5;
 
-  --danger: #a32118;
-  --danger-soft: #f7e6e2;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
 
-  --board-light: #ebecd0;
-  --board-dark: #779556;
-  --board-frame: #1f1c17;
-  --board-highlight: rgb(255 214 0 / 30%);
-  --board-marker: rgb(20 30 15 / 28%);
-  /* The selection ring lives on green squares, not on paper, so it keeps its
-     own bright amber instead of following the page accent. */
-  --board-ring: #f6c344;
-  /* The pieces are their own object: they keep the same contrast against the
-     squares in both themes, so they get tokens of their own. */
-  --piece-white: #f8f7f0;
-  --piece-black: #262421;
-  --piece-line: #14120f;
+  /* The one dark surface on the page, for the thing that has to be read out
+     loud across a room. */
+  --plate: #1e293b;
+  --on-plate: #ffffff;
 
-  --shadow-card: 0 1px 2px rgb(45 35 20 / 7%);
+  --board-light: #dee3e6;
+  --board-dark: #8ca2ad;
+  --board-frame: #334155;
+  --board-highlight: rgb(245 158 11 / 34%);
+  --board-marker: rgb(15 23 42 / 26%);
+  --board-ring: #f59e0b;
+  /* The pieces are their own object. A white piece measures 1.2:1 against a
+     light square, which is why the contour is structural and not decoration. */
+  --piece-white: #f8fafc;
+  --piece-black: #1f2933;
+  --piece-line: #16202b;
+
+  --shadow-card:
+    0 1px 3px rgb(15 23 42 / 8%),
+    0 1px 2px rgb(15 23 42 / 4%);
 
   --duration: 180ms;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
 
-  color-scheme: light dark;
+  color-scheme: light;
   font-family: var(--font-sans);
   font-size: 100%;
   line-height: 1.55;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #16140f;
-    --surface: #1e1b15;
-    --surface-sunken: #131109;
-    --foreground: #ede8dc;
-    --muted: #a29a88;
-    --border: #332e24;
-    --border-strong: #4a4335;
-
-    --primary: #4ade80;
-    --primary-hover: #6ee7a0;
-    --on-primary: #07220f;
-    --primary-soft: #1d2b1e;
-
-    --accent: #fbbf24;
-    --accent-soft: #33280f;
-
-    --danger: #f2867c;
-    --danger-soft: #2e1a17;
-
-    --board-light: #d9d7c1;
-    --board-dark: #6d8a4f;
-    --board-frame: #5d564a;
-    --board-highlight: rgb(255 214 0 / 26%);
-    --board-marker: rgb(10 16 8 / 34%);
-    --piece-white: #ebe9e0;
-    --piece-black: #1c1a18;
-    --piece-line: #0c0b09;
-
-    --shadow-card: none;
-  }
 }
 
 * {
@@ -129,25 +101,21 @@ body {
 
 /* -- type ------------------------------------------------------------------ */
 
-/* Headings are read, so they are set in the serif. Section labels are not
-   headings in that sense — they name a control — and stay in the sans; see
-   `.section__title` in App.css. */
 h1,
 h2,
 h3 {
   margin: 0;
-  font-family: var(--font-serif);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.2;
+  letter-spacing: -0.02em;
 }
 
 h1 {
-  font-size: 1.5rem;
-  letter-spacing: 0.01em;
+  font-size: 1.75rem;
 }
 
 h2 {
-  font-size: 1.1875rem;
+  font-size: 1.25rem;
 }
 
 p {
@@ -171,10 +139,10 @@ button {
   min-height: 2.75rem;
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--foreground);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition:
     background-color var(--duration) var(--ease),
@@ -184,6 +152,7 @@ button {
 
 button:hover:not(:disabled) {
   border-color: var(--foreground);
+  background: var(--surface-sunken);
 }
 
 button:disabled {
@@ -223,7 +192,7 @@ button:disabled {
 }
 
 .button--quiet:hover:not(:disabled) {
-  border-color: var(--border-strong);
+  border-color: var(--border);
   color: var(--foreground);
 }
 
@@ -232,15 +201,17 @@ input {
   min-height: 2.75rem;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--foreground);
-  transition: border-color var(--duration) var(--ease);
+  transition:
+    border-color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease);
 }
 
 input::placeholder {
   color: var(--muted);
-  opacity: 0.8;
+  opacity: 0.75;
 }
 
 input:hover:not(:disabled) {
@@ -262,7 +233,7 @@ label {
 /* One focus ring for everything, and it is never removed: keyboard players
    need to see where they are on a board of 64 identical buttons. */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
