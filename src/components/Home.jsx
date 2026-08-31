@@ -10,8 +10,7 @@ import {
 } from '../lib/protocol.js'
 
 /**
- * The Inicio artboard: an editorial column on the left, the one form on the
- * right.
+ * The Inicio artboard: the one form, centred on the page.
  *
  * The maquette draws joining a room as a screen of its own, but it also puts a
  * segmented control on this card that switches between creating and joining.
@@ -46,36 +45,6 @@ export default function Home({ nickname, canAct, onCreate, onJoin }) {
 
   return (
     <div className="home">
-      <div className="home__intro">
-        <p className="kicker">Ajedrez en línea · uno contra uno</p>
-        <h1 className="home__title">Gambito</h1>
-        <p className="home__lede">
-          Una mesa para dos. Escribe tu apodo, crea una sala y pásale el token a
-          tu rival. Nadie se registra y nada se guarda: cuando los dos estén
-          sentados, empieza la partida.
-        </p>
-
-        <hr className="hr home__rule" />
-
-        <ol className="steps">
-          <li className="steps__item">
-            <span className="steps__numeral">I</span>
-            <span>Elige un apodo. Es lo único que verá tu rival.</span>
-          </li>
-          <li className="steps__item">
-            <span className="steps__numeral">II</span>
-            <span>Crea la sala y copia el token de la partida.</span>
-          </li>
-          <li className="steps__item">
-            <span className="steps__numeral">III</span>
-            <span>
-              Tu rival lo pega, entra, y juegan a {INITIAL_TIME_SECONDS / 60} minutos
-              por cabeza, con historial y chat al lado.
-            </span>
-          </li>
-        </ol>
-      </div>
-
       <div className="home__panel">
         <form className="card elev-sm home__form" onSubmit={handleSubmit}>
           <p className="card-kicker">Sentarse a la mesa</p>

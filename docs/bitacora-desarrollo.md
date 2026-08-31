@@ -1071,6 +1071,39 @@ tiempo» y «Ganas la partida».
   689, el documento se queda en los 994 del viewport, y el registro sigue
   pegado al último mensaje.
 
+
+### 31 de agosto de 2026 — v1.0.2: el inicio, más desnudo, y las barras de scroll
+
+- **Fuera la columna editorial del inicio.** La pantalla de entrada tenía a la
+  izquierda el título, un párrafo de presentación y la lista de tres pasos, y a
+  la derecha la tarjeta del formulario. Se queda solo la tarjeta, centrada.
+
+  Con la división desaparecen tres cosas de golpe: `.home` pasa de dos pistas a
+  una, `.home__panel` pierde el borde izquierdo —era la divisoria que
+  compartía con la columna, y en un panel a todo el ancho quedaría como una
+  raya suelta en el canto de la página—, y la consulta de medios para móvil se
+  queda solo con el relleno, porque ya no hay dos mitades que apilar. También se
+  fue el CSS que quedó muerto: `.home__title`, `.home__lede`, `.home__rule` y
+  las tres reglas de `.steps`.
+
+  Efecto secundario a tener presente: el logo y el nombre solo se dibujan en la
+  barra de la pantalla de partida, así que el inicio ya no lleva marca visible.
+
+- **Las barras de scroll no se dibujan.** Las dos únicas cajas que desbordan en
+  toda la aplicación —la lista de jugadas y el registro del chat— ya están
+  dentro de un marco, así que la barra trazaba una segunda línea vertical justo
+  al lado de la primera, y aparecía y desaparecía según crecían la partida y la
+  conversación.
+
+  Se va solo el dibujo: la rueda, el trackpad y el arrastre siguen scrolleando
+  las dos, y el chat sigue pegándose solo al mensaje más nuevo. Hacen falta dos
+  reglas porque `scrollbar-width` es la propiedad estándar y Safari todavía no
+  la implementa, de ahí el `::-webkit-scrollbar`.
+
+  El precio es que se pierde la señal de que hay más contenido hacia arriba.
+  En el chat importa poco, porque baja solo al mensaje nuevo y lo de arriba es
+  historial ya leído.
+
 ---
 
 ## 10. Convenciones del repositorio

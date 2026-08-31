@@ -28,6 +28,25 @@
   border-top: 1px solid var(--color-divider);
 }
 
+/* -- the two boxes that scroll --------------------------------------------- */
+
+/* The move list and the chat log. Both already sit inside a framed box, so the
+   bar draws a second vertical line right beside the first, and it appears and
+   disappears as the game and the conversation grow — busier than the panels
+   holding it. Only the drawing goes: the wheel, the trackpad and a drag still
+   scroll both, and the chat log still follows its newest message on its own.
+   `scrollbar-width` is the standard property; the `::-webkit-scrollbar` rule
+   is for Safari, which does not implement it yet. */
+.table-frame,
+.chat__log {
+  scrollbar-width: none;
+}
+
+.table-frame::-webkit-scrollbar,
+.chat__log::-webkit-scrollbar {
+  display: none;
+}
+
 /* The kicker above a screen title. Same idea as `.card-kicker`, one step up in
    size because it heads a page rather than a card. */
 .kicker {
@@ -102,78 +121,24 @@
 
 /* -- home ------------------------------------------------------------------ */
 
-/* Both tracks are `minmax(0, …)` rather than a bare fraction. A grid track's
-   default minimum is its content's min-content width, and the card in the right
-   half is 400px wide: left to itself the track would refuse to go under 400 and
-   the whole page would scroll sideways on a narrow screen. */
 .home {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-}
-
-.home__intro {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 26px;
-  padding: 80px 72px;
-}
-
-.home__title {
-  /* The bigger the text, the lighter it sets: display sizes take the normal cut
-     of Cormorant, not the semibold the interface headings use. */
-  margin: 0;
-  font-weight: 400;
-  font-size: 76px;
-  line-height: 0.98;
-}
-
-.home__lede {
-  margin: 0;
-  max-width: 46ch;
-  font-size: 16px;
-  text-wrap: pretty;
-}
-
-.home__rule {
-  margin: 6px 0;
-  max-width: 420px;
-}
-
-.steps {
-  display: grid;
-  gap: 16px;
-  max-width: 420px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.steps__item {
-  display: grid;
-  grid-template-columns: 30px 1fr;
-  gap: 14px;
-  align-items: baseline;
-  font-size: 14px;
-}
-
-.steps__numeral {
-  font-family: var(--font-heading);
-  font-size: 20px;
-  color: var(--color-accent-700);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .home__panel {
   display: grid;
   place-items: center;
-  /* Same reason: without this the track takes the card's fixed 400px as its
-     minimum, and the card's own `max-width: 100%` measures against that track
-     and so can never bite. */
+  /* `minmax(0, …)` rather than a bare fraction: a grid track's default minimum
+     is its content's min-content width, and the card is 400px wide. Left to
+     itself the track would refuse to go under 400 — the card's own
+     `max-width: 100%` measures against that track and so could never bite, and
+     the page would scroll sideways on a narrow screen. `.home` sets its one
+     track the same way, for the same reason. */
   grid-template-columns: minmax(0, 1fr);
   padding: 56px;
   background: var(--color-surface);
-  border-left: 1px solid var(--color-divider);
 }
 
 /* The one card on the page sits on the page colour, inside the surface panel:
@@ -206,28 +171,9 @@
   text-align: center;
 }
 
-/* Below the split, the two halves stack: the form first, because on a phone the
-   thing to do outranks the thing to read. */
 @media (max-width: 56rem) {
-  .home {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .home__intro {
-    order: 2;
-    padding: var(--space-6) var(--space-4);
-    gap: var(--space-4);
-  }
-
-  .home__title {
-    font-size: clamp(48px, 14vw, 76px);
-  }
-
   .home__panel {
-    order: 1;
     padding: var(--space-6) var(--space-4);
-    border-left: none;
-    border-bottom: 1px solid var(--color-divider);
   }
 }
 
