@@ -28,6 +28,25 @@
   border-top: 1px solid var(--color-divider);
 }
 
+/* -- the two boxes that scroll --------------------------------------------- */
+
+/* The move list and the chat log. Both already sit inside a framed box, so the
+   bar draws a second vertical line right beside the first, and it appears and
+   disappears as the game and the conversation grow — busier than the panels
+   holding it. Only the drawing goes: the wheel, the trackpad and a drag still
+   scroll both, and the chat log still follows its newest message on its own.
+   `scrollbar-width` is the standard property; the `::-webkit-scrollbar` rule
+   is for Safari, which does not implement it yet. */
+.table-frame,
+.chat__log {
+  scrollbar-width: none;
+}
+
+.table-frame::-webkit-scrollbar,
+.chat__log::-webkit-scrollbar {
+  display: none;
+}
+
 /* The kicker above a screen title. Same idea as `.card-kicker`, one step up in
    size because it heads a page rather than a card. */
 .kicker {
