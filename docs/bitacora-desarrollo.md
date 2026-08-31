@@ -1043,6 +1043,34 @@ tiempo» y «Ganas la partida».
   saldrían del medio. `font-variant-numeric: lining-nums` las sube a altura de
   mayúscula. Comprobado en pantalla: el `7` sale del mismo alto que la `R`.
 
+
+### 31 de agosto de 2026 — Hotfix v1.0.1: el chat no tenía scroll
+
+- **El registro del chat crecía en vez de desbordar.** Cada mensaje estiraba la
+  página hacia abajo: con veinte mensajes el documento medía 1970 px contra un
+  viewport de 994, y había que bajar con la rueda para volver a ver el tablero.
+
+  El CSS ya decía `overflow-y: auto`, y el componente ya tenía la lógica de
+  seguir el último mensaje solo si el jugador estaba al final. Nada de eso
+  fallaba. Lo que fallaba era que `flex: 1` únicamente acota una caja cuando su
+  contenedor tiene una altura *definida*, y la cadena de contenedores termina
+  arriba en `.app { min-height: 100vh }`: un mínimo, no una altura. Como ningún
+  eslabón era definido, la caja crecía con su contenido y `overflow-y` nunca
+  llegaba a tener nada que desbordar. Medido en el navegador: `clientHeight` y
+  `scrollHeight` del registro daban los dos 1698 px.
+
+  La lista de jugadas ya resolvía esto mismo con un tope (`.table-frame`,
+  `max-height: 34vh`), así que el registro recibe el mismo tratamiento:
+  `max-height: calc(100vh - 19rem)`. Los 19 rem son el sitio que necesita el
+  resto de la pantalla — la barra superior y el pie, más la cabecera del panel,
+  el compositor, las frases rápidas y el relleno alrededor del registro — con
+  holgura para el contador de caracteres, que solo aparece cerca del límite y
+  si no empujaría la página hacia abajo mientras se escribe.
+
+  Comprobado con 32 mensajes: el contenido mide 3206 px dentro de una caja de
+  689, el documento se queda en los 994 del viewport, y el registro sigue
+  pegado al último mensaje.
+
 ---
 
 ## 10. Convenciones del repositorio

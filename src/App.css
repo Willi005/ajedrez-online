@@ -598,9 +598,22 @@
 
 /* -- chat ------------------------------------------------------------------ */
 
+/* `flex: 1` only bounds a box when its flex container has a definite height,
+   and the chain above this one ends at `.app { min-height: 100vh }` — a
+   minimum, not a height. So the column was free to grow, the log grew with the
+   conversation, `overflow-y` never had anything to overflow, and the whole page
+   got taller with every message. The cap is what makes the box definite. The
+   move list solves the same problem the same way, in `.table-frame`.
+
+   The 19rem is the room the rest of the screen needs: the nav and the footer
+   above and below the column, and the panel's own head, composer, quick
+   phrases and padding around the log — plus the character counter, which
+   appears only near the limit and would otherwise push the page down while
+   the player types. */
 .chat__log {
   flex: 1;
   min-height: 320px;
+  max-height: calc(100vh - 19rem);
   display: flex;
   flex-direction: column;
   gap: 12px;
