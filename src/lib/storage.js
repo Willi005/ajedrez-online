@@ -9,6 +9,7 @@
 
 const NICKNAME_KEY = 'ajedrez.nickname'
 const SERVER_URL_KEY = 'ajedrez.serverUrl'
+const THEME_KEY = 'ajedrez.theme'
 
 function read(key, fallback = null) {
   try {
@@ -58,4 +59,30 @@ export function writeServerUrl(url) {
 
 export function clearServerUrl() {
   remove(SERVER_URL_KEY)
+}
+
+/** Returns the system preferred theme ('dark' or 'light'). */
+export function getSystemTheme() {
+  try {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light'
+  } catch {
+    return 'light'
+  }
+}
+
+/** Returns the stored theme, or the system theme when none was set. */
+export function readTheme() {
+  const saved = read(THEME_KEY, null)
+  if (saved === 'dark' || saved === 'light') return saved
+  return getSystemTheme()
+}
+
+export function writeTheme(theme) {
+  write(THEME_KEY, theme)
+}
+
+export function clearTheme() {
+  remove(THEME_KEY)
 }

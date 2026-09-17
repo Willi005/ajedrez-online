@@ -150,12 +150,16 @@
    maquette used for its own piece placeholders. */
 .piece--w {
   color: var(--piece-white);
-  --piece-stroke: var(--color-neutral-800);
-  --piece-detail: var(--color-neutral-800);
+  --piece-stroke: var(--piece-white-stroke, var(--color-neutral-800));
+  --piece-detail: var(--piece-white-detail, var(--color-neutral-800));
 }
 
 .piece--b {
   color: var(--piece-black);
-  --piece-stroke: var(--color-neutral-900);
-  --piece-detail: var(--color-neutral-100);
+  --piece-stroke: var(--piece-black-stroke, var(--color-neutral-900));
+  --piece-detail: var(--piece-black-detail, var(--color-neutral-100));
+}
+
+:root[data-theme="dark"] .piece--b {
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.18));
 }

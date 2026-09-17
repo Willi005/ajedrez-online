@@ -4,6 +4,7 @@ These are the tests that prove the whole block works together. Nothing here is
 mocked; the client used is the same raw-socket client shipped in tools/.
 """
 
+import socket
 import threading
 import unittest
 
@@ -355,6 +356,16 @@ class DisconnectTest(ServerTestCase):
         message = self.receive(white, timeout=5)
 
         self.assertEqual(message["type"], "opponent_left")
+
+
+class HealthCheckTest(ServerTestCase):
+    def test_http_probe_receives_200_ok(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect(("127.0.0.1", self.server.port))
+        sock.sendall(b"GET /health HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        response = sock.recv(1024)
+        sock.close()
+        self.assertTrue(response.startswith(b"HTTP/1.1 200 OK"))
 
 
 if __name__ == "__main__":

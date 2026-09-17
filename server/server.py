@@ -10,6 +10,7 @@ but the protocol is implemented by hand on top of a plain SOCK_STREAM socket.
 
 import json
 import logging
+import os
 import socket
 import threading
 import time
@@ -32,9 +33,9 @@ from server.websocket import (
     encode_text_frame,
 )
 
-DEFAULT_HOST = "0.0.0.0"
-DEFAULT_PORT = 8765
-LISTEN_BACKLOG = 16
+DEFAULT_HOST = os.environ.get("HOST", "0.0.0.0")
+DEFAULT_PORT = int(os.environ.get("PORT", 8765))
+LISTEN_BACKLOG = int(os.environ.get("LISTEN_BACKLOG", 128))
 RECV_CHUNK = 4096
 HANDSHAKE_TIMEOUT = 10.0
 CLIENT_TIMEOUT = 300.0
@@ -154,6 +155,12 @@ class ChessServer:
     def _handle_client(self, connection, address):
         peer = f"{address[0]}:{address[1]}"
         try:
+            connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            connection.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        except (OSError, AttributeError):
+            pass
+
+        try:
             connection.settimeout(HANDSHAKE_TIMEOUT)
             if not self._handshake(connection, peer):
                 return
@@ -179,6 +186,18 @@ class ChessServer:
             if len(request) > RECV_CHUNK * 4:
                 logger.warning("[%s] handshake demasiado grande", peer)
                 return False
+
+        # Support basic HTTP health check / probes (Render, Railway, Fly.io, uptime monitors)
+        # Only intercept plain HTTP requests that do not request a WebSocket upgrade.
+        if b"upgrade" not in request.lower() and request.startswith((b"GET /", b"HEAD /")):
+            connection.sendall(
+                b"HTTP/1.1 200 OK\r\n"
+                b"Content-Type: text/plain; charset=utf-8\r\n"
+                b"Content-Length: 2\r\n"
+                b"Connection: close\r\n\r\n"
+                b"OK"
+            )
+            return False
 
         try:
             response = build_handshake_response(request)

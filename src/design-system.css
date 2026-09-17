@@ -343,7 +343,7 @@
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+  background: var(--color-scrim, color-mix(in srgb, var(--color-neutral-900) 50%, transparent));
 }
 
 .dialog {

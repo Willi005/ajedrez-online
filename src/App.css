@@ -28,6 +28,25 @@
   border-top: 1px solid var(--color-divider);
 }
 
+/* -- theme toggle ---------------------------------------------------------- */
+
+.theme-toggle {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-4);
+  z-index: 50;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  border-color: var(--color-divider);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.theme-toggle:hover:not(:disabled) {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+}
+
 /* -- the two boxes that scroll --------------------------------------------- */
 
 /* The move list and the chat log. Both already sit inside a framed box, so the
@@ -67,6 +86,7 @@
   align-items: center;
   gap: 12px;
   padding: 10px 18px;
+  padding-right: calc(var(--space-4) + 44px);
 }
 
 .strip--danger {
@@ -291,6 +311,7 @@
   background: var(--color-bg);
   flex-wrap: wrap;
   gap: var(--space-3) var(--space-4);
+  padding-right: calc(var(--space-4) + 44px);
 }
 
 .match__room {
@@ -470,14 +491,15 @@
 }
 
 .avatar--white {
-  border: 1px solid var(--color-neutral-800);
-  background: var(--color-neutral-100);
-  color: var(--color-neutral-900);
+  border: 1px solid var(--avatar-white-border, var(--color-neutral-800));
+  background: var(--avatar-white-bg, var(--color-neutral-100));
+  color: var(--avatar-white-text, var(--color-neutral-900));
 }
 
 .avatar--black {
-  background: var(--color-neutral-900);
-  color: var(--color-neutral-100);
+  border: 1px solid var(--avatar-black-border, transparent);
+  background: var(--avatar-black-bg, var(--color-neutral-900));
+  color: var(--avatar-black-text, var(--color-neutral-100));
 }
 
 /* -- side panels ----------------------------------------------------------- */

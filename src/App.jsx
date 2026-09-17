@@ -4,6 +4,7 @@ import GameOver from './components/GameOver.jsx'
 import GameScreen from './components/GameScreen.jsx'
 import Home from './components/Home.jsx'
 import ServerSettings from './components/ServerSettings.jsx'
+import ThemeToggle from './components/ThemeToggle.jsx'
 import WaitingRoom from './components/WaitingRoom.jsx'
 import { useChessGame } from './hooks/useChessGame.js'
 import { useGameSocket } from './hooks/useGameSocket.js'
@@ -20,8 +21,10 @@ import {
 import {
   clearServerUrl,
   readNickname,
+  readTheme,
   writeNickname,
   writeServerUrl,
+  writeTheme,
 } from './lib/storage.js'
 import './App.css'
 
@@ -61,6 +64,7 @@ function stamp() {
 export default function App() {
   const [nickname, setNickname] = useState(readNickname)
   const [serverUrl, setServerUrl] = useState(resolveServerUrl)
+  const [theme, setTheme] = useState(readTheme)
 
   const [phase, setPhase] = useState(PHASE.LOBBY)
   const [room, setRoom] = useState(null)
@@ -68,6 +72,22 @@ export default function App() {
   const [outcomeSeen, setOutcomeSeen] = useState(false)
   const [lastError, setLastError] = useState(null)
   const [messages, setMessages] = useState([])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (meta) {
+      meta.setAttribute('content', theme === 'dark' ? '#151413' : '#f3f2f2')
+    }
+  }, [theme])
+
+  const handleThemeToggle = useCallback(() => {
+    setTheme((current) => {
+      const next = current === 'dark' ? 'light' : 'dark'
+      writeTheme(next)
+      return next
+    })
+  }, [])
 
   // The last thing the server said about the two clocks, stamped with the
   // moment it arrived so the display can tick on from there. Null until a game
@@ -361,6 +381,8 @@ export default function App() {
 
   return (
     <div className={`app${inRoom ? ' app--match' : ''}`}>
+      <ThemeToggle theme={theme} onToggle={handleThemeToggle} />
+
       {lastError && (
         <ErrorBanner error={lastError} onDismiss={() => setLastError(null)} />
       )}

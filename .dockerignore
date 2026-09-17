@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.git/
+.env
+.env.*
+.oxlintrc.json
+vite.config.js
+package.json
+package-lock.json
+public/
+src/
+docs/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.DS_Store

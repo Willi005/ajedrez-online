@@ -101,8 +101,88 @@
   --piece-white: var(--color-neutral-100);
   --piece-black: var(--color-neutral-900);
 
+  --color-scrim: color-mix(in srgb, #2d2b2b 50%, transparent);
+
+  /* Piece strokes and details in light mode match the neutral tokens. */
+  --piece-white-stroke: var(--color-neutral-800);
+  --piece-white-detail: var(--color-neutral-800);
+  --piece-black-stroke: var(--color-neutral-900);
+  --piece-black-detail: var(--color-neutral-100);
+
+  /* Avatar tokens ensure white/black player indicators match pieces in both modes. */
+  --avatar-white-bg: var(--color-neutral-100);
+  --avatar-white-text: var(--color-neutral-900);
+  --avatar-white-border: var(--color-neutral-800);
+  --avatar-black-bg: var(--color-neutral-900);
+  --avatar-black-text: var(--color-neutral-100);
+  --avatar-black-border: transparent;
+
   color-scheme: light;
   font-family: var(--font-body);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #151413;
+  --color-surface: #201e1b;
+  --color-text: #eae6df;
+  --color-accent: #cfa15c;
+  --color-accent-2: #bf914c;
+  --color-divider: color-mix(in srgb, #eae6df 13%, transparent);
+  --color-scrim: color-mix(in srgb, #000000 68%, transparent);
+
+  /* Tonal ramps — inverted and calibrated for the warm ink Classical palette. */
+  --color-neutral-100: #1c1a18;
+  --color-neutral-200: #272522;
+  --color-neutral-300: #393531;
+  --color-neutral-400: #554f49;
+  --color-neutral-500: #787068;
+  --color-neutral-600: #9c9389;
+  --color-neutral-700: #c1b9af;
+  --color-neutral-800: #dfd9cf;
+  --color-neutral-900: #f2eee8;
+
+  --color-accent-100: #2a2318;
+  --color-accent-200: #382c1a;
+  --color-accent-300: #574322;
+  --color-accent-400: #8c672b;
+  --color-accent-500: #b5873d;
+  --color-accent-600: #cfa15c;
+  --color-accent-700: #e8bd78;
+  --color-accent-800: #f5d69e;
+  --color-accent-900: #fdf0d5;
+
+  --color-danger-100: #2d1615;
+  --color-danger-300: #692c27;
+  --color-danger-700: #f06c62;
+  --color-danger-800: #fca8a1;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.7);
+
+  /* Board: warm dark walnut and muted stone hues */
+  --board-light: #524d45;
+  --board-dark: #37332c;
+  --board-light-last: #675435;
+  --board-dark-last: #4d3d23;
+
+  /* Pieces maintain their true physical chess identities */
+  --piece-white: #f5f2ec;
+  --piece-black: #1d1b19;
+  --piece-white-stroke: #2e2a25;
+  --piece-white-detail: #2e2a25;
+  --piece-black-stroke: #12100f;
+  --piece-black-detail: #d9d3c7;
+
+  /* Avatars preserve player piece identities */
+  --avatar-white-bg: #f5f2ec;
+  --avatar-white-text: #22201e;
+  --avatar-white-border: #807a72;
+  --avatar-black-bg: #22201e;
+  --avatar-black-text: #f5f2ec;
+  --avatar-black-border: #4d4740;
 }
 
 *,
